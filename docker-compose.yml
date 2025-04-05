@@ -1,0 +1,17 @@
+# File: docker-compose.yml
+
+version: '3.8'
+
+services:
+  bp-tracker:
+    build: .
+    ports:
+      - "32401:32401"
+    volumes:
+      - bp-data:/app/data
+    restart: unless-stopped
+
+volumes:
+  bp-data:
+    name: bp-data
+    driver: local

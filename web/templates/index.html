@@ -1,0 +1,132 @@
+<!-- File: web/templates/index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blood Pressure Tracker</title>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Blood Pressure Tracker</h1>
+            {{if .LastReading}}
+                <div class="last-reading">
+                    <h2>Last Reading</h2>
+                    <p>
+                        Date: {{.LastReading.Timestamp.Format "Jan 02, 2006 15:04"}} <br>
+                        BP: {{.LastReading.Systolic}}/{{.LastReading.Diastolic}} mmHg <br>
+                        Pulse: {{.LastReading.Pulse}} bpm <br>
+                        Classification: <span class="classification">{{.LastReading.Classification}}</span>
+                    </p>
+                </div>
+            {{end}}
+        </header>
+
+        <main>
+            <section class="input-section">
+                <h2>New Reading</h2>
+                <form id="readingForm">
+                    <div class="readings-grid">
+                        <!-- Reading 1 -->
+                        <div class="reading-group">
+                            <h3>Reading 1</h3>
+                            <div class="input-group">
+                                <label for="systolic1">Systolic:</label>
+                                <input type="number" id="systolic1" name="systolic1" required min="60" max="250">
+                            </div>
+                            <div class="input-group">
+                                <label for="diastolic1">Diastolic:</label>
+                                <input type="number" id="diastolic1" name="diastolic1" required min="40" max="150">
+                            </div>
+                            <div class="input-group">
+                                <label for="pulse1">Pulse:</label>
+                                <input type="number" id="pulse1" name="pulse1" required min="40" max="200">
+                            </div>
+                        </div>
+
+                        <!-- Reading 2 -->
+                        <div class="reading-group">
+                            <h3>Reading 2</h3>
+                            <div class="input-group">
+                                <label for="systolic2">Systolic:</label>
+                                <input type="number" id="systolic2" name="systolic2" required min="60" max="250">
+                            </div>
+                            <div class="input-group">
+                                <label for="diastolic2">Diastolic:</label>
+                                <input type="number" id="diastolic2" name="diastolic2" required min="40" max="150">
+                            </div>
+                            <div class="input-group">
+                                <label for="pulse2">Pulse:</label>
+                                <input type="number" id="pulse2" name="pulse2" required min="40" max="200">
+                            </div>
+                        </div>
+
+                        <!-- Reading 3 -->
+                        <div class="reading-group">
+                            <h3>Reading 3</h3>
+                            <div class="input-group">
+                                <label for="systolic3">Systolic:</label>
+                                <input type="number" id="systolic3" name="systolic3" required min="60" max="250">
+                            </div>
+                            <div class="input-group">
+                                <label for="diastolic3">Diastolic:</label>
+                                <input type="number" id="diastolic3" name="diastolic3" required min="40" max="150">
+                            </div>
+                            <div class="input-group">
+                                <label for="pulse3">Pulse:</label>
+                                <input type="number" id="pulse3" name="pulse3" required min="40" max="200">
+                            </div>
+                        </div>
+                    </div>
+
+                    <button type="submit" class="submit-btn">Save Readings</button>
+                </form>
+
+                <div id="result" class="result hidden">
+                    <h3>Result</h3>
+                    <p class="classification"></p>
+                    <p class="recommendation"></p>
+                </div>
+            </section>
+
+            <section class="stats-section">
+                <h2>Statistics</h2>
+                <div class="stats-grid">
+                    {{if .SevenDayAvg}}
+                        <div class="stat-card">
+                            <h3>7-Day Average</h3>
+                            <p>{{.SevenDayAvg.Systolic}}/{{.SevenDayAvg.Diastolic}} mmHg</p>
+                            <p>Pulse: {{.SevenDayAvg.Pulse}} bpm</p>
+                            <p class="reading-count">Readings: {{.SevenDayCount}}</p>
+                        </div>
+                    {{end}}
+                    {{if .ThirtyDayAvg}}
+                        <div class="stat-card">
+                            <h3>30-Day Average</h3>
+                            <p>{{.ThirtyDayAvg.Systolic}}/{{.ThirtyDayAvg.Diastolic}} mmHg</p>
+                            <p>Pulse: {{.ThirtyDayAvg.Pulse}} bpm</p>
+                            <p class="reading-count">Readings: {{.ThirtyDayCount}}</p>
+                        </div>
+                    {{end}}
+                    {{if .AllTimeAvg}}
+                        <div class="stat-card">
+                            <h3>All-Time Average</h3>
+                            <p>{{.AllTimeAvg.Systolic}}/{{.AllTimeAvg.Diastolic}} mmHg</p>
+                            <p>Pulse: {{.AllTimeAvg.Pulse}} bpm</p>
+                            <p class="reading-count">Readings: {{.AllTimeCount}}</p>
+                        </div>
+                    {{end}}
+                </div>
+
+                <div class="export-section">
+                    <a href="/export/csv" class="export-btn">Export to CSV</a>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="/static/js/main.js"></script>
+</body>
+</html>

@@ -1,0 +1,11 @@
+.git
+.gitignore
+README.md
+scripts/
+*.md
+data/
+*.db
+.env
+tmp/
+.idea/
+.vscode/
