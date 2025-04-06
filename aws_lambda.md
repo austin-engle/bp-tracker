@@ -1,164 +1,104 @@
 # Migrating bp-tracker to AWS Lambda + RDS (Serverless)
 
-This document outlines the necessary changes to run the `bp-tracker` application serverlessly on AWS Lambda, triggered by API Gateway, and using AWS RDS for persistent data storage. This approach is optimized for infrequent usage (e.g., 1-2 times per day) to minimize costs.
+This document outlines the steps taken and the final configuration to run the `bp-tracker` application serverlessly on AWS Lambda, triggered by API Gateway, and using AWS RDS PostgreSQL for persistent data storage.
 
 ## Architecture Overview
 
-1.  **API Gateway (HTTP API):** Acts as the HTTP frontend, receiving requests and triggering the Lambda function. Use the cheaper HTTP API type.
-2.  **AWS Lambda Function:** Contains the Go application logic, packaged as a `.zip` file or container image. Executes only when requests arrive.
-3.  **AWS RDS:** Provides the persistent relational database (e.g., PostgreSQL or MySQL). A small instance type (`t4g.micro` or `t3.micro`) is recommended.
-4.  **AWS RDS Proxy (Recommended):** Manages database connections efficiently between Lambda and RDS, mitigating connection overhead and improving performance.
-5.  **AWS Secrets Manager:** Securely stores the RDS database password.
+1.  **API Gateway (HTTP API):** Acts as the HTTP frontend, receiving requests and triggering the Lambda function. Uses the cheaper HTTP API type with **payload format version 1.0** for compatibility with the Lambda Go proxy adapter.
+2.  **AWS Lambda Function:** Contains the Go application logic (using Gin framework adapted via `aws-lambda-go-api-proxy/gin`), packaged as a container image based on the official `public.ecr.aws/lambda/go:1` base image. Executes only when requests arrive.
+3.  **AWS RDS (PostgreSQL):** Provides the persistent relational database.
+4.  **AWS RDS Proxy (Optional - Currently Bypassed):** While recommended for managing database connections, the current configuration connects Lambda directly to the RDS instance endpoint for troubleshooting simplicity. Reverting to use the proxy requires updating the `DB_HOST` environment variable in Terraform.
+5.  **AWS Secrets Manager:** Securely stores the RDS database password, which is fetched directly by the Lambda function code using the AWS SDK.
+6.  **AWS ECR:** Stores the Docker container image for the Lambda function.
+7.  **Terraform:** Used to provision and manage all the AWS infrastructure components.
 
-## Required Changes
+## Required Changes (Summary)
 
-### 1. Go Application Code (`internal/`, `cmd/`)
+*   **Go Application Code (`internal/`, `cmd/`):
+    *   Removed `http.ListenAndServe`.
+    *   Implemented Lambda handler using `aws-lambda-go` and `aws-lambda-go-api-proxy/gin`.
+    *   Switched database driver to `jackc/pgx/v5`.
+    *   Modified database connection logic (`internal/database/db.go`) to read config from environment variables and fetch the password from Secrets Manager using the AWS SDK.
+    *   Added `/migrate` route and handler (`internal/handlers/handlers.go`) to apply `schema.sql`.
+*   **Configuration:** All configuration (DB host, port, user, name, SSL mode, secret ARN) is read from Lambda environment variables.
+*   **`Dockerfile`:** Implemented multi-stage build using `golang:1.22-alpine` and final stage using `public.ecr.aws/lambda/go:1`, copying only the compiled `bootstrap` binary, static web assets, and `schema.sql`.
+*   **Terraform (`terraform/main.tf`):** Defines VPC, security groups, ECR repository, RDS instance, Secrets Manager secret, RDS Proxy (optional), Lambda function, IAM roles/policies, and API Gateway.
 
-*   **Remove HTTP Server:** Eliminate the `http.ListenAndServe` logic. The application will no longer run as a persistent server.
-*   **Implement Lambda Handler:**
-    *   Use the `aws-lambda-go` library.
-    *   Create a main handler function (e.g., `HandleRequest`) that accepts an API Gateway event payload.
-    *   Adapt existing web framework code (if any) to work within the handler, possibly using helper libraries like `aws-lambda-go-api-proxy` to translate events.
-*   **Database Logic:**
-    *   Replace the SQLite driver (`mattn/go-sqlite3`) with an appropriate RDS driver (e.g., `jackc/pgx` for PostgreSQL or `go-sql-driver/mysql` for MySQL). Update `go.mod`.
-    *   Modify database connection logic to:
-        *   Read connection details (host, port, user, dbname, password) from environment variables.
-        *   Connect to the RDS endpoint (ideally the RDS Proxy endpoint).
-        *   Handle connection setup/teardown within the Lambda invocation OR rely on RDS Proxy's pooling.
-*   **Request/Response:** Adjust code to read request details from the Lambda event object and return responses in the format required by API Gateway.
+## Lambda Configuration Details
 
-### 2. Configuration
+*   **Runtime:** Container Image (`public.ecr.aws/lambda/go:1` base)
+*   **Handler:** N/A (defined by container CMD)
+*   **Environment Variables (Essential):
+    *   `DB_HOST`: Endpoint of the RDS instance (e.g., `bp-tracker-db.xxxxxxxx.us-west-2.rds.amazonaws.com`) or RDS Proxy endpoint. *Ensure this does NOT include the port if connecting directly to RDS.*
+    *   `DB_PORT`: `5432`
+    *   `DB_USER`: Database username (e.g., `dbadmin`)
+    *   `DB_NAME`: Database name (e.g., `bptrackerdb`)
+    *   `DB_SSLMODE`: `require` (TLS is required for RDS/Proxy)
+    *   `SECRET_ARN`: ARN of the secret in Secrets Manager containing the DB password.
+*   **VPC:** Configured to run within the private subnets of the VPC.
+*   **Security Group:** Associated with a security group (`lambda-sg`) allowing egress (needed for RDS/Proxy and Secrets Manager access).
+*   **IAM Role:** Assigned an execution role (`lambda-exec-role`) with:
+    *   `AWSLambdaBasicExecutionRole` (for CloudWatch Logs).
+    *   `AWSLambdaVPCAccessExecutionRole` (for VPC access).
+    *   Custom policy allowing `secretsmanager:GetSecretValue` on the specific `SECRET_ARN`.
 
-*   **Environment Variables:** Ensure *all* configuration (DB connection strings, ports, etc.) is read from environment variables provided to the Lambda function.
-*   **Secrets Management:** Store the database password in AWS Secrets Manager. Grant the Lambda function's IAM role permission to read it.
+## API Gateway Configuration Details
 
-### 3. `Dockerfile`
-
-*   **Purpose:** Primarily for building the Lambda deployment package (if using container image deployment) and for local testing via `docker-compose`.
-*   **Modifications:**
-    *   Ensure `bp.db` is NOT copied into the image.
-    *   If deploying Lambda via container image, the `CMD`/`ENTRYPOINT` needs to be compatible with the Lambda Runtime Interface Emulator (RIE). Often, you just build the binary and Lambda invokes it directly. Consult AWS Lambda container image documentation.
-    *   Ensure multi-stage builds are clean and produce a minimal final image containing only the compiled Go binary and necessary assets (like static web files if any).
-
-### 4. `.dockerignore`
-
-*   Add or ensure `bp.db` is present to exclude it from the Docker build context.
-*   Also exclude `.git`, `.env`, `aws_lambda.md`, etc.
-
-### 5. `docker-compose.yml` (Local Development)
-
-*   **Replace `bp.db`:** Remove any references or volumes related to the local `bp.db` file.
-*   **Add Database Service:** Define a new service using a standard database image (e.g., `postgres:alpine` or `mysql:latest`).
-    *   Configure its environment variables (e.g., `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`).
-    *   Use a Docker volume to persist data locally between `docker-compose up/down` cycles.
-*   **Update `app` Service:**
-    *   Modify the `environment` section to provide `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` pointing to the database service defined above (e.g., `DB_HOST: db`).
-    *   Ensure `depends_on` specifies the database service.
-
-## Implementation Details for AI Assistant
-
-This section provides specific guidance on the code modifications:
-
-*   **Main Function (`cmd/.../main.go`):**
-    *   Remove any calls to `http.ListenAndServe` or similar web server startup functions.
-    *   The `main` function should now typically contain only `lambda.Start(YourHandlerFunction)`.
-    *   `YourHandlerFunction` needs to match a signature compatible with `aws-lambda-go`, often `func(ctx context.Context, request events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error)`.
-*   **Dependency Changes (`go.mod`):**
-    *   Remove `github.com/mattn/go-sqlite3`.
-    *   Add `github.com/aws/aws-lambda-go`.
-    *   Add the appropriate RDS database driver (e.g., `github.com/jackc/pgx/v4` for PostgreSQL or `github.com/go-sql-driver/mysql` for MySQL).
-    *   Run `go mod tidy`.
-*   **Database Connection:**
-    *   Locate the code responsible for opening the SQLite database connection (`sql.Open("sqlite3", ...)`).
-    *   Replace it with code that opens a connection to PostgreSQL or MySQL using the new driver.
-    *   Construct the Database Source Name (DSN) string dynamically using environment variables fetched via `os.Getenv("VAR_NAME")`. Example DSNs:
-        *   PostgreSQL: `"postgresql://user:password@host:port/dbname"`
-        *   MySQL: `"user:password@tcp(host:port)/dbname"`
-    *   Ensure environment variables like `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME` are read.
-*   **Web Framework Adapters (If Applicable):**
-    *   If using Gin, Echo, etc., find where the router/engine is created and routes are defined.
-    *   Instead of calling `router.Run()`, use an adapter library (like `github.com/awslabs/aws-lambda-go-api-proxy/gin` or `/echo`) to create the Lambda handler function. The adapter will translate API Gateway events into standard `http.Request` objects for the framework.
-    *   Example (Gin):
-        ```go
-        import (
-            "github.com/aws/aws-lambda-go/lambda"
-            ginadapter "github.com/awslabs/aws-lambda-go-api-proxy/gin"
-            "github.com/gin-gonic/gin"
-        )
-
-        var ginLambda *ginadapter.GinLambda
-
-        func init() {
-            // Setup Gin router (define routes, middleware)
-            router := gin.Default()
-            // ... register routes ...
-            ginLambda = ginadapter.New(router)
-        }
-
-        func Handler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
-            // If no REST server is needed, attach one to the GinLambda
-            return ginLambda.ProxyWithContext(ctx, req)
-        }
-
-        func main() {
-            lambda.Start(Handler)
-        }
-        ```
-*   **`Dockerfile`:** Modify the final stage to just copy the compiled Go binary. The `CMD` should typically just be the path to the binary (e.g., `CMD ["/main"]`). Lambda's runtime environment handles invoking it. Remove any `EXPOSE` instructions related to the old web server port.
-*   **`docker-compose.yml`:** Ensure the `app` service's `environment` variables match those needed for the RDS connection string (e.g., `DB_HOST: db`, `DB_USER: localuser`, etc.) and that a `db` service (using `postgres` or `mysql` image) is defined with corresponding credentials.
-
-## AWS Setup Summary
-
-1.  Create RDS instance and configure security groups.
-2.  (Recommended) Set up RDS Proxy pointing to the RDS instance.
-3.  Create Lambda function (Go runtime or container image), configure environment variables (using Secrets Manager for password), VPC access, and IAM role.
-4.  Create API Gateway (HTTP API), define routes, and integrate them with the Lambda function.
-5.  Deploy the API Gateway.
+*   **Type:** HTTP API
+*   **Integrations:** Uses AWS Lambda proxy integration (`AWS_PROXY`).
+*   **Payload Format Version:** **`1.0`** (Version 2.0 caused routing issues with the `aws-lambda-go-api-proxy/gin` adapter).
+*   **Routes:**
+    *   `$default`: Catch-all route pointing to the Lambda integration (handles `/`, `/submit`, `/export/csv`, etc.).
+    *   `POST /migrate`: Specific route pointing to the *same* Lambda integration but secured using **IAM Authorization**. This ensures only authenticated AWS principals can trigger the migration.
 
 ## Deployment Workflow
 
 This section outlines the typical steps to deploy changes to the AWS environment after the initial Terraform setup.
 
-1.  **Code Changes:** Make necessary changes to the Go application code (`internal/`, `cmd/`).
-2.  **Build Docker Image:** Build the application's Docker image locally using the updated `Dockerfile`.
+1.  **Code Changes:** Make necessary changes to the Go application code (`internal/`, `cmd/`) or `Dockerfile`.
+2.  **Build Docker Image:** Build the application's Docker image locally, ensuring the correct platform.
     ```bash
-    # Example: Replace <account-id>, <region>, <tag> with your values
-    docker build -t <account-id>.dkr.ecr.<region>.amazonaws.com/bp-tracker:<tag> .
+    docker build -t bp-tracker-lambda . --platform linux/amd64
     ```
-    *   Common tags (`<tag>`) include `latest`, a commit hash (`git rev-parse --short HEAD`), or a version number.
-3.  **Push Docker Image to ECR:** Authenticate Docker with ECR and push the newly built image.
+3.  **Tag Docker Image:** Tag the image for ECR.
     ```bash
-    # Authenticate
+    # Replace <account-id>, <region>, <tag> (e.g., latest, commit hash)
+    docker tag bp-tracker-lambda:latest <account-id>.dkr.ecr.<region>.amazonaws.com/bp-tracker:<tag>
+    ```
+4.  **Push Docker Image to ECR:** Authenticate Docker with ECR and push the newly built image.
+    ```bash
+    # Authenticate (run once per session or when credentials expire)
     aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
 
     # Push
     docker push <account-id>.dkr.ecr.<region>.amazonaws.com/bp-tracker:<tag>
     ```
-4.  **Apply Schema Migrations (if needed):**
-    *   If you have made changes to `internal/database/schema.sql` (or if using a migration tool with new migration files), run the migration script against the **deployed RDS database**.
-    *   You will need database credentials (host, port, user, password, dbname) for the deployed RDS instance. The host will be the **RDS Instance Endpoint** (or **RDS Proxy Endpoint** if connecting through the proxy, which is recommended). The password should be retrieved from **AWS Secrets Manager**.
-    *   **Set Environment Variables:** Before running the script, set the required `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSLMODE` environment variables in your terminal session where you will run the script. Use `DB_SSLMODE=require` when connecting to RDS/RDS Proxy.
-        ```bash
-        # Example (replace with actual values, retrieving password securely)
-        export DB_HOST="<rds-proxy-or-instance-endpoint>"
-        export DB_PORT="5432"
-        export DB_USER="dbadmin" # Or your RDS username
-        export DB_PASSWORD="$(aws secretsmanager get-secret-value --secret-id bp-tracker/db-password --query SecretString --output text)" # Example: retrieve from Secrets Manager
-        export DB_NAME="<rds-db-name>" # e.g., postgres or bp_tracker_db
-        export DB_SSLMODE="require"
-        ```
-    *   **Run the Migration Script:** Execute the Go script from the project root.
-        ```bash
-        go run scripts/migrate_schema.go
-        ```
-    *   **Note:** Running this script locally requires network connectivity from your machine to the RDS instance/proxy within the VPC (e.g., via VPN, bastion host, or temporarily adjusting security groups - use caution).
-    *   **Alternative:** Integrate this script execution into a CI/CD pipeline step that runs within your AWS environment (e.g., using AWS CodeBuild) for more secure and automated database access.
-5.  **Update Lambda Function:** Update the Lambda function to use the new Docker image tag pushed to ECR.
-    *   **Terraform:** Update the `ecr_image_tag` variable in your Terraform configuration (e.g., in `terraform.tfvars` or via `-var="ecr_image_tag=<new_tag>"`) and run `terraform apply`.
-    *   **AWS CLI:** Use the `aws lambda update-function-code` command:
-        ```bash
-        aws lambda update-function-code --function-name bp-tracker-app --image-uri <account-id>.dkr.ecr.<region>.amazonaws.com/bp-tracker:<new_tag>
-        ```
-    *   **AWS Console:** Manually update the image URI in the Lambda function's configuration.
+5.  **Update Lambda Function Code:** Update the Lambda function to use the new Docker image tag pushed to ECR.
+    ```bash
+    # Replace <account-id>, <region>, <new_tag>
+    aws lambda update-function-code --function-name bp-tracker-app \
+      --image-uri <account-id>.dkr.ecr.<region>.amazonaws.com/bp-tracker:<new_tag> \
+      --region <region>
+    ```
+    *(Alternatively, update the image tag variable in Terraform and run `terraform apply`)*
 
-This setup provides a serverless execution model suitable for infrequent requests, minimizing costs while retaining data persistence through RDS.
+6.  **Apply Schema Migrations (if schema.sql changed or DB is new):**
+    *   The application includes a `POST /migrate` endpoint designed to apply the schema defined in `internal/database/schema.sql`.
+    *   This endpoint is secured with **IAM authorization** via API Gateway.
+    *   To invoke it, use a tool capable of making AWS Signature Version 4 signed requests, such as `awscurl`.
+    *   Ensure your local AWS credentials (used by `awscurl`) have the necessary `execute-api:Invoke` permission for the `/migrate` route on the deployed API Gateway stage.
+    *   Run the following command (replace placeholders):
+        ```bash
+        # Replace <invoke_url> with your API Gateway stage URL (e.g., https://xxxx.execute-api.us-west-2.amazonaws.com)
+        # Replace <region> with your AWS region
+        awscurl --service execute-api -X POST "<invoke_url>/migrate" --region <region>
+        ```
+    *   A successful run should output `{"message":"Schema migration applied successfully!"}`. Check CloudWatch logs for the corresponding Lambda invocation for detailed success or error messages from the `MigrateHandler`.
+
+## Troubleshooting Notes
+
+*   **Routing Issues (`/migrate`):** If specific routes (like `/migrate`) aren't working, ensure the API Gateway integration's **Payload Format Version is set to `1.0`**. Version 2.0 caused issues with path parameters needed by the `ginadapter`.
+*   **DNS Errors (`no such host`):** If connecting *directly* to the RDS instance (not proxy), the `DB_HOST` environment variable must contain *only* the hostname, not the port. The RDS instance `.endpoint` attribute in Terraform sometimes includes the port. Use `split(":", aws_db_instance.main.endpoint)[0]` in Terraform if needed, or manually verify/correct the `DB_HOST` value in the Lambda console.
+*   **TLS Errors (`tls error: EOF`):** When connecting to RDS or RDS Proxy, ensure `DB_SSLMODE=require` is set in the Lambda environment variables. Also verify security groups allow traffic on port 5432 between the Lambda function and the target (RDS instance or Proxy).
+*   **Migration Errors (`relation "readings" does not exist`):** Indicates the schema migration via `POST /migrate` did not run or failed. Check the CloudWatch logs for the specific `/migrate` invocation for errors (e.g., `MIGRATION_ERROR: Error executing schema...`). Ensure the `/migrate` request is actually reaching the `MigrateHandler` and not being misrouted to `HomeHandler`.
+*   **CloudWatch Logs:** Always check the CloudWatch log group for your Lambda function (`/aws/lambda/bp-tracker-app`) for detailed error messages and request/response logs.

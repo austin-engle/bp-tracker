@@ -1,133 +1,77 @@
-# Quick Start Guide: Blood Pressure Tracker
+# Quick Start (AWS Lambda Deployment)
 
-## Development Setup
+This guide provides the minimal steps to deploy and run the Blood Pressure Tracker application on AWS Lambda. For detailed explanations, prerequisites, and troubleshooting, refer to `README.md` and `aws_lambda.md`.
 
-### 1. Prerequisites
-```bash
-# Required
-- Go 1.22.5 or later
-- SQLite 3
-- Docker & Docker Compose (optional)
+**Assumptions:**
 
-# Check Go version
-go version
-```
+*   You have an AWS account.
+*   Terraform, Docker, AWS CLI, and `awscurl` are installed and configured.
 
-### 2. Clone and Setup
-```bash
-# Create project directory
-mkdir bp-tracker
-cd bp-tracker
+**Steps:**
 
-# Copy all provided files into their respective directories
-# Ensure directory structure matches the project layout
-```
+1.  **Clone Repository:**
+    ```bash
+    git clone <repository_url>
+    cd bp-tracker
+    ```
 
-### 3. Local Development
-```bash
-# Install dependencies
-go mod tidy
+2.  **Provision Infrastructure (Terraform):**
+    *   Navigate to `terraform/`.
+    *   Configure variables (e.g., via `terraform.tfvars` or command line), ensuring `aws_region` is set.
+    *   Initialize Terraform:
+        ```bash
+        terraform init
+        ```
+    *   Apply Terraform configuration:
+        ```bash
+        terraform apply
+        ```
+    *   Note the `api_gateway_invoke_url` output value.
 
-# Run the application
-go run cmd/server/main.go
+3.  **Build & Push Application Image:**
+    *   Navigate back to the project root (`cd ..`).
+    *   Build the Docker image:
+        ```bash
+        docker build -t bp-tracker-lambda . --platform linux/amd64
+        ```
+    *   Tag the image (replace placeholders):
+        ```bash
+        # Example tag: latest
+        TAG=latest
+        ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+        REGION=<your_aws_region> # e.g., us-west-2
+        REPO_URI="${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com/bp-tracker"
 
-# Access the application
-open http://localhost:32401
-```
+        docker tag bp-tracker-lambda:latest "${REPO_URI}:${TAG}"
+        ```
+    *   Authenticate Docker with ECR:
+        ```bash
+        aws ecr get-login-password --region ${REGION} | docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${REGION}.amazonaws.com
+        ```
+    *   Push the image:
+        ```bash
+        docker push "${REPO_URI}:${TAG}"
+        ```
 
-### 4. Docker Development
-```bash
-# Build and start
-docker-compose up -d
+4.  **Update Lambda Function:**
+    ```bash
+    aws lambda update-function-code --function-name bp-tracker-app \
+      --image-uri "${REPO_URI}:${TAG}" \
+      --region ${REGION}
+    ```
+    *(Wait a few moments for the update to propagate)*
 
-# View logs
-docker-compose logs -f
+5.  **Run Database Migration:**
+    *   Use the API Gateway URL noted from the Terraform output.
+    *   Ensure your AWS credentials allow `execute-api:Invoke`.
+    ```bash
+    INVOKE_URL=<api_gateway_invoke_url_from_terraform>
 
-# Stop the application
-docker-compose down
-```
+    awscurl --service execute-api -X POST "${INVOKE_URL}/migrate" --region ${REGION}
+    ```
+    *   Expected output: `{"message":"Schema migration applied successfully!"}`
 
-### 5. Test Data Setup
-```bash
-# Generate test data (60 days)
-go run scripts/seed.go
+6.  **Access Application:**
+    *   Open the `INVOKE_URL` in your web browser.
 
-# For Docker:
-docker-compose exec bp-tracker go run scripts/seed.go
-```
-
-### 6. Common Operations
-```bash
-# Clean all data
-go run scripts/cleanup.go -mode=all
-
-# Export data
-curl http://localhost:32401/export/csv > readings.csv
-
-# Monitor logs
-tail -f bp-tracker.log
-```
-
-## Testing the Setup
-
-1. Initial Test
-```bash
-# Start the application
-go run cmd/server/main.go
-
-# In another terminal, test the API
-curl http://localhost:32401
-```
-
-2. Add Test Reading
-```bash
-curl -X POST http://localhost:32401/submit \
-  -H "Content-Type: application/json" \
-  -d '{
-    "systolic1": 120,
-    "diastolic1": 80,
-    "pulse1": 72,
-    "systolic2": 122,
-    "diastolic2": 81,
-    "pulse2": 70,
-    "systolic3": 121,
-    "diastolic3": 80,
-    "pulse3": 71
-  }'
-```
-
-## Troubleshooting
-
-### Common Issues
-1. Port already in use:
-```bash
-# Check port usage
-lsof -i :32401
-# Use different port
-go run cmd/server/main.go -port=32402
-```
-
-2. Database issues:
-```bash
-# Reset database
-go run scripts/cleanup.go -mode=all
-# Check permissions
-ls -l bp.db
-```
-
-3. Docker issues:
-```bash
-# Remove containers and volumes
-docker-compose down -v
-# Rebuild
-docker-compose up -d --build
-```
-
-### Health Check
-```bash
-# Check application status
-curl http://localhost:32401/
-
-# Check database
-sqlite3 bp.db "SELECT count(*) FROM readings;"
-```
+You should now see the Blood Pressure Tracker application interface running on AWS Lambda.
