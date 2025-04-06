@@ -3,237 +3,252 @@
 package database
 
 import (
-    "database/sql"
-    "embed"
-    "fmt"
-    "time"
+	"context"
+	"database/sql" // Added for secret parsing
+	"fmt"
+	"log" // Added for logging
+	"os"
+	"time"
 
-    "bp-tracker/internal/models"
-    _ "github.com/mattn/go-sqlite3"
+	"bp-tracker/internal/models"
+
+	"github.com/aws/aws-sdk-go-v2/config"                 // Added AWS SDK config
+	"github.com/aws/aws-sdk-go-v2/service/secretsmanager" // Added Secrets Manager client
+	_ "github.com/jackc/pgx/v5/stdlib"
 )
-
-//go:embed schema.sql
-var schemaFS embed.FS
 
 // DB wraps the SQL database connection
 type DB struct {
-    *sql.DB
+	*sql.DB
 }
 
-// New creates a new database connection and initializes the schema
-func New(dbPath string) (*DB, error) {
-    db, err := sql.Open("sqlite3", dbPath)
-    if err != nil {
-        return nil, fmt.Errorf("error opening database: %w", err)
-    }
+// Function to get secret from AWS Secrets Manager
+func getSecret(secretARN string) (string, error) {
+	ctx := context.TODO() // Use TODO context for this utility function
+	cfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return "", fmt.Errorf("unable to load AWS SDK config: %w", err)
+	}
 
-    // Initialize schema
-    schema, err := schemaFS.ReadFile("schema.sql")
-    if err != nil {
-        return nil, fmt.Errorf("error reading schema: %w", err)
-    }
+	svc := secretsmanager.NewFromConfig(cfg)
 
-    if _, err := db.Exec(string(schema)); err != nil {
-        return nil, fmt.Errorf("error initializing schema: %w", err)
-    }
+	input := &secretsmanager.GetSecretValueInput{
+		SecretId: &secretARN,
+	}
 
-    // Test the connection
-    if err := db.Ping(); err != nil {
-        return nil, fmt.Errorf("error connecting to database: %w", err)
-    }
+	result, err := svc.GetSecretValue(ctx, input)
+	if err != nil {
+		return "", fmt.Errorf("failed to get secret value: %w", err)
+	}
 
-    return &DB{db}, nil
+	// Check if the secret string is nil first
+	if result.SecretString == nil {
+		// Handle binary secret if necessary, or return an error if string is expected
+		// For now, let's assume a nil string is an error for a password.
+		return "", fmt.Errorf("secret string is nil for ARN: %s", *input.SecretId) // Use input.SecretId for ARN in error
+	}
+
+	// Return the raw secret string directly, assuming it's the password
+	return *result.SecretString, nil
 }
 
-// SaveReading stores a new blood pressure reading
+// New creates a new PostgreSQL database connection using environment variables and Secrets Manager
+func New() (*DB, error) {
+	// Read connection details from environment variables
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	secretARN := os.Getenv("SECRET_ARN") // Read Secret ARN
+	dbName := os.Getenv("DB_NAME")
+	dbSSLMode := os.Getenv("DB_SSLMODE")
+
+	// Basic validation
+	if dbHost == "" || dbPort == "" || dbUser == "" || secretARN == "" || dbName == "" || dbSSLMode == "" {
+		return nil, fmt.Errorf("missing required environment variables (DB_HOST, DB_PORT, DB_USER, SECRET_ARN, DB_NAME, DB_SSLMODE)")
+	}
+
+	// Fetch the password from Secrets Manager
+	dbPassword, err := getSecret(secretARN)
+	if err != nil {
+		return nil, fmt.Errorf("failed to retrieve DB password from Secrets Manager (ARN: %s): %w", secretARN, err)
+	}
+
+	// Construct the DSN (Data Source Name)
+	dsn := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		dbHost, dbPort, dbUser, dbPassword, dbName, dbSSLMode)
+
+	// Use "pgx" as the driver name with stdlib
+	db, err := sql.Open("pgx", dsn)
+	if err != nil {
+		return nil, fmt.Errorf("error opening database connection pool: %w", err)
+	}
+
+	// Test the connection using context for potential timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second) // Slightly longer timeout
+	defer cancel()
+	if err := db.PingContext(ctx); err != nil {
+		// Provide more context on ping failure
+		db.Close() // Attempt to close DB on failure
+		return nil, fmt.Errorf("error pinging database (host=%s, user=%s, db=%s): %w", dbHost, dbUser, dbName, err)
+	}
+
+	log.Println("Successfully connected to PostgreSQL database!") // Use log package
+
+	return &DB{db}, nil
+}
+
+// SaveReading stores a new blood pressure reading using PostgreSQL syntax
 func (db *DB) SaveReading(r *models.Reading) error {
-    query := `
+	query := `
         INSERT INTO readings (timestamp, systolic, diastolic, pulse, classification)
-        VALUES (strftime('%s', ?), ?, ?, ?, ?)
-    `
+        VALUES ($1, $2, $3, $4, $5)
+    ` // Changed placeholders, removed strftime
 
-    _, err := db.Exec(query, r.Timestamp.Format("2006-01-02 15:04:05"), r.Systolic, r.Diastolic, r.Pulse, r.Classification)
-    if err != nil {
-        return fmt.Errorf("error saving reading: %w", err)
-    }
+	// Pass the time.Time directly, pgx handles it
+	_, err := db.Exec(query, r.Timestamp, r.Systolic, r.Diastolic, r.Pulse, r.Classification)
+	if err != nil {
+		return fmt.Errorf("error saving reading: %w", err)
+	}
 
-    return nil
+	return nil
 }
 
-// GetStats retrieves blood pressure statistics
+// GetStats retrieves blood pressure statistics using PostgreSQL syntax
 func (db *DB) GetStats() (*models.Stats, error) {
-    stats := &models.Stats{}
+	stats := &models.Stats{}
 
-    // Get last reading
-    lastReadingQuery := `
-        SELECT id, datetime(timestamp, 'unixepoch') as ts, systolic, diastolic, pulse, classification
+	// Get last reading - select timestamp directly, use $ placeholders if needed (none here)
+	lastReadingQuery := `
+        SELECT id, timestamp as ts, systolic, diastolic, pulse, classification
         FROM readings
         ORDER BY timestamp DESC
         LIMIT 1
     `
 
-    stats.LastReading = &models.Reading{}
-    var ts string
-    err := db.QueryRow(lastReadingQuery).Scan(
-        &stats.LastReading.ID,
-        &ts,
-        &stats.LastReading.Systolic,
-        &stats.LastReading.Diastolic,
-        &stats.LastReading.Pulse,
-        &stats.LastReading.Classification,
-    )
-    if err == sql.ErrNoRows {
-        stats.LastReading = nil
-        // Return empty stats instead of error when no data exists
-        return stats, nil
-    } else if err != nil {
-        return nil, fmt.Errorf("error getting last reading: %w", err)
-    }
+	stats.LastReading = &models.Reading{}
+	// Scan directly into time.Time
+	err := db.QueryRow(lastReadingQuery).Scan(
+		&stats.LastReading.ID,
+		&stats.LastReading.Timestamp, // Scan directly into time.Time
+		&stats.LastReading.Systolic,
+		&stats.LastReading.Diastolic,
+		&stats.LastReading.Pulse,
+		&stats.LastReading.Classification,
+	)
+	if err == sql.ErrNoRows {
+		stats.LastReading = nil
+		return stats, nil // Return empty stats if no data
+	} else if err != nil {
+		return nil, fmt.Errorf("error getting last reading: %w", err)
+	}
 
-    // Parse the timestamp string into time.Time
-    stats.LastReading.Timestamp, err = time.Parse("2006-01-02 15:04:05", ts)
-    if err != nil {
-        return nil, fmt.Errorf("error parsing timestamp: %w", err)
-    }
+	// Time ranges for averages
+	now := time.Now() // Use standard time.Now() unless timezone logic is critical
+	sevenDaysAgo := now.AddDate(0, 0, -7)
+	thirtyDaysAgo := now.AddDate(0, 0, -30)
 
-    // Time ranges for averages
-    now := models.GetTimestampInMST()
-    sevenDaysAgo := now.AddDate(0, 0, -7)
-    thirtyDaysAgo := now.AddDate(0, 0, -30)
-
-    // Debug: Print all readings
-    rows, err := db.Query(`
-        SELECT datetime(timestamp, 'unixepoch') as ts, systolic, diastolic, pulse
-        FROM readings
-        ORDER BY timestamp DESC
-    `)
-    if err != nil {
-        fmt.Printf("Error querying all readings: %v\n", err)
-    } else {
-        defer rows.Close()
-        fmt.Println("\nAll readings in database:")
-        for rows.Next() {
-            var ts string
-            var sys, dia, pul int
-            if err := rows.Scan(&ts, &sys, &dia, &pul); err != nil {
-                fmt.Printf("Error scanning row: %v\n", err)
-                continue
-            }
-            fmt.Printf("%v: %d/%d, Pulse: %d\n", ts, sys, dia, pul)
-        }
-        fmt.Println()
-    }
-
-    fmt.Printf("Time ranges - Now: %v, 7 days ago: %v, 30 days ago: %v\n",
-        now.Format("2006-01-02 15:04:05"),
-        sevenDaysAgo.Format("2006-01-02 15:04:05"),
-        thirtyDaysAgo.Format("2006-01-02 15:04:05"))
-
-    // Helper function for getting averages within a specific time range
-    getAverageWithRange := func(start, end time.Time) (*models.Reading, int, error) {
-        query := `
+	// Helper function for getting averages within a specific time range using PostgreSQL syntax
+	getAverageWithRange := func(start, end time.Time) (*models.Reading, int, error) {
+		query := `
             SELECT
-                COALESCE(ROUND(AVG(systolic)), 0) as avg_systolic,
-                COALESCE(ROUND(AVG(diastolic)), 0) as avg_diastolic,
-                COALESCE(ROUND(AVG(pulse)), 0) as avg_pulse,
+                COALESCE(ROUND(AVG(systolic)), 0)::int as avg_systolic,
+                COALESCE(ROUND(AVG(diastolic)), 0)::int as avg_diastolic,
+                COALESCE(ROUND(AVG(pulse)), 0)::int as avg_pulse,
                 COUNT(*) as reading_count
             FROM readings
-            WHERE timestamp >= strftime('%s', ?) AND timestamp < strftime('%s', ?)
-        `
+            WHERE timestamp >= $1 AND timestamp < $2
+        ` // Changed placeholders, timestamp comparison, added ::int cast for Scan
 
-        r := &models.Reading{}
-        var count int
-        err := db.QueryRow(query, start.Format("2006-01-02 15:04:05"), end.Format("2006-01-02 15:04:05")).Scan(&r.Systolic, &r.Diastolic, &r.Pulse, &count)
-        if err == sql.ErrNoRows || count == 0 {
-            return nil, 0, nil
-        } else if err != nil {
-            return nil, 0, err
-        }
-        if r.Systolic == 0 && r.Diastolic == 0 && r.Pulse == 0 {
-            return nil, 0, nil
-        }
-        fmt.Printf("Query from %v to %v returned: BP: %d/%d, Pulse: %d, Count: %d\n",
-            start.Format("2006-01-02 15:04:05"),
-            end.Format("2006-01-02 15:04:05"),
-            r.Systolic, r.Diastolic, r.Pulse, count)
-        return r, count, nil
-    }
+		r := &models.Reading{}
+		var count int
+		// Pass time.Time directly
+		err := db.QueryRow(query, start, end).Scan(&r.Systolic, &r.Diastolic, &r.Pulse, &count)
+		if err != nil {
+			if err == sql.ErrNoRows && count == 0 {
+				return nil, 0, nil
+			}
+			return nil, 0, fmt.Errorf("error executing average query for range %v to %v: %w", start, end, err)
+		}
+		if count == 0 {
+			return nil, 0, nil
+		}
 
-    // Get averages for different time periods
-    // Last 7 days
-    stats.SevenDayAvg, stats.SevenDayCount, err = getAverageWithRange(sevenDaysAgo, now)
-    if err != nil {
-        return nil, fmt.Errorf("error getting 7-day average: %w", err)
-    }
+		return r, count, nil
+	}
 
-    // Last 30 days
-    stats.ThirtyDayAvg, stats.ThirtyDayCount, err = getAverageWithRange(thirtyDaysAgo, now)
-    if err != nil {
-        return nil, fmt.Errorf("error getting 30-day average: %w", err)
-    }
+	// Get averages for different time periods
+	stats.SevenDayAvg, stats.SevenDayCount, err = getAverageWithRange(sevenDaysAgo, now)
+	if err != nil {
+		log.Printf("Error getting 7-day average: %v\n", err)
+		return nil, fmt.Errorf("error calculating 7-day average: %w", err)
+	}
 
-    // All time
-    allTimeQuery := `
+	stats.ThirtyDayAvg, stats.ThirtyDayCount, err = getAverageWithRange(thirtyDaysAgo, now)
+	if err != nil {
+		log.Printf("Error getting 30-day average: %v\n", err)
+		return nil, fmt.Errorf("error calculating 30-day average: %w", err)
+	}
+
+	// All time average using PostgreSQL syntax
+	allTimeQuery := `
         SELECT
-            COALESCE(ROUND(AVG(systolic)), 0) as avg_systolic,
-            COALESCE(ROUND(AVG(diastolic)), 0) as avg_diastolic,
-            COALESCE(ROUND(AVG(pulse)), 0) as avg_pulse,
+            COALESCE(ROUND(AVG(systolic)), 0)::int as avg_systolic,
+            COALESCE(ROUND(AVG(diastolic)), 0)::int as avg_diastolic,
+            COALESCE(ROUND(AVG(pulse)), 0)::int as avg_pulse,
             COUNT(*) as reading_count
         FROM readings
     `
-    r := &models.Reading{}
-    var count int
-    err = db.QueryRow(allTimeQuery).Scan(&r.Systolic, &r.Diastolic, &r.Pulse, &count)
-    if err != nil && err != sql.ErrNoRows {
-        return nil, fmt.Errorf("error getting all-time average: %w", err)
-    }
-    if count > 0 && (r.Systolic != 0 || r.Diastolic != 0 || r.Pulse != 0) {
-        stats.AllTimeAvg = r
-        stats.AllTimeCount = count
-        fmt.Printf("All-time query returned: BP: %d/%d, Pulse: %d, Count: %d\n",
-            r.Systolic, r.Diastolic, r.Pulse, count)
-    }
+	r := &models.Reading{}
+	var count int
+	err = db.QueryRow(allTimeQuery).Scan(&r.Systolic, &r.Diastolic, &r.Pulse, &count)
+	if err != nil {
+		if err == sql.ErrNoRows && count == 0 {
+			// No data, do nothing
+		} else {
+			return nil, fmt.Errorf("error getting all-time average: %w", err)
+		}
+	}
+	if count > 0 {
+		stats.AllTimeAvg = r
+		stats.AllTimeCount = count
+	}
 
-    return stats, nil
+	return stats, nil
 }
 
-// GetAllReadings retrieves all readings for CSV export
+// GetAllReadings retrieves all readings using PostgreSQL syntax
 func (db *DB) GetAllReadings() ([]*models.Reading, error) {
-    query := `
-        SELECT id, datetime(timestamp, 'unixepoch') as ts, systolic, diastolic, pulse, classification
+	query := `
+        SELECT id, timestamp as ts, systolic, diastolic, pulse, classification
         FROM readings
         ORDER BY timestamp DESC
-    `
+    ` // Removed datetime(), select timestamp directly
 
-    rows, err := db.Query(query)
-    if err != nil {
-        return nil, fmt.Errorf("error querying readings: %w", err)
-    }
-    defer rows.Close()
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, fmt.Errorf("error querying readings: %w", err)
+	}
+	defer rows.Close()
 
-    var readings []*models.Reading
-    for rows.Next() {
-        r := &models.Reading{}
-        var ts string
-        err := rows.Scan(&r.ID, &ts, &r.Systolic, &r.Diastolic, &r.Pulse, &r.Classification)
-        if err != nil {
-            return nil, fmt.Errorf("error scanning reading: %w", err)
-        }
-        r.Timestamp, err = time.Parse("2006-01-02 15:04:05", ts)
-        if err != nil {
-            return nil, fmt.Errorf("error parsing timestamp: %w", err)
-        }
-        readings = append(readings, r)
-    }
+	var readings []*models.Reading
+	for rows.Next() {
+		r := &models.Reading{}
+		// Scan directly into time.Time
+		err := rows.Scan(&r.ID, &r.Timestamp, &r.Systolic, &r.Diastolic, &r.Pulse, &r.Classification)
+		if err != nil {
+			return nil, fmt.Errorf("error scanning reading: %w", err)
+		}
+		readings = append(readings, r)
+	}
 
-    if err := rows.Err(); err != nil {
-        return nil, fmt.Errorf("error iterating readings: %w", err)
-    }
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("error iterating readings: %w", err)
+	}
 
-    return readings, nil
+	return readings, nil
 }
 
 // Close closes the database connection
 func (db *DB) Close() error {
-    return db.DB.Close()
+	return db.DB.Close()
 }

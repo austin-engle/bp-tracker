@@ -3,15 +3,53 @@
 version: '3.8'
 
 services:
-  bp-tracker:
+  # Renamed service for clarity (optional)
+  app:
     build: .
     ports:
-      - "32401:32401"
+      # Expose a port for local access to the Lambda runtime interface emulator (if needed for testing)
+      # Or remove if direct HTTP testing isn't the primary local workflow
+      - "9000:8080" # Lambda RIE default port is 8080
+    # volumes: # Removed volume mount for bp.db
+    #  - bp-data:/app/data
+    environment:
+      # Database connection details for the postgres service below
+      DB_HOST: db
+      DB_PORT: 5432
+      DB_USER: postgres
+      DB_PASSWORD: password # Keep password simple for local dev
+      DB_NAME: bp_tracker_local
+      DB_SSLMODE: disable
+      # Add other env vars your app might need
+      GIN_MODE: debug # Example if using Gin
+    depends_on:
+      db: # Depends on db service
+        condition: service_healthy # Wait for db healthcheck to pass
+    # No restart policy needed for typical local dev
+    # restart: unless-stopped
+
+  db:
+    image: postgres:15-alpine # Use a specific version
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password # Must match DB_PASSWORD above
+      POSTGRES_DB: bp_tracker_local # Must match DB_NAME above
+    ports:
+      - "5432:5432" # Expose PostgreSQL port locally for direct access/tools
     volumes:
-      - bp-data:/app/data
-    restart: unless-stopped
+      - postgres_data:/var/lib/postgresql/data # Persist data locally
+    restart: unless-stopped # Keep DB running
+    # Healthcheck to wait for PostgreSQL to be ready
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d bp_tracker_local -h db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
 
 volumes:
-  bp-data:
-    name: bp-data
+  # Removed bp-data volume
+  # bp-data:
+  #   name: bp-data
+  #   driver: local
+  postgres_data: # Define named volume for PostgreSQL data persistence
     driver: local

@@ -115,4 +115,50 @@ This section provides specific guidance on the code modifications:
 4.  Create API Gateway (HTTP API), define routes, and integrate them with the Lambda function.
 5.  Deploy the API Gateway.
 
+## Deployment Workflow
+
+This section outlines the typical steps to deploy changes to the AWS environment after the initial Terraform setup.
+
+1.  **Code Changes:** Make necessary changes to the Go application code (`internal/`, `cmd/`).
+2.  **Build Docker Image:** Build the application's Docker image locally using the updated `Dockerfile`.
+    ```bash
+    # Example: Replace <account-id>, <region>, <tag> with your values
+    docker build -t <account-id>.dkr.ecr.<region>.amazonaws.com/bp-tracker:<tag> .
+    ```
+    *   Common tags (`<tag>`) include `latest`, a commit hash (`git rev-parse --short HEAD`), or a version number.
+3.  **Push Docker Image to ECR:** Authenticate Docker with ECR and push the newly built image.
+    ```bash
+    # Authenticate
+    aws ecr get-login-password --region <region> | docker login --username AWS --password-stdin <account-id>.dkr.ecr.<region>.amazonaws.com
+
+    # Push
+    docker push <account-id>.dkr.ecr.<region>.amazonaws.com/bp-tracker:<tag>
+    ```
+4.  **Apply Schema Migrations (if needed):**
+    *   If you have made changes to `internal/database/schema.sql` (or if using a migration tool with new migration files), run the migration script against the **deployed RDS database**.
+    *   You will need database credentials (host, port, user, password, dbname) for the deployed RDS instance. The host will be the **RDS Instance Endpoint** (or **RDS Proxy Endpoint** if connecting through the proxy, which is recommended). The password should be retrieved from **AWS Secrets Manager**.
+    *   **Set Environment Variables:** Before running the script, set the required `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD`, `DB_NAME`, `DB_SSLMODE` environment variables in your terminal session where you will run the script. Use `DB_SSLMODE=require` when connecting to RDS/RDS Proxy.
+        ```bash
+        # Example (replace with actual values, retrieving password securely)
+        export DB_HOST="<rds-proxy-or-instance-endpoint>"
+        export DB_PORT="5432"
+        export DB_USER="dbadmin" # Or your RDS username
+        export DB_PASSWORD="$(aws secretsmanager get-secret-value --secret-id bp-tracker/db-password --query SecretString --output text)" # Example: retrieve from Secrets Manager
+        export DB_NAME="<rds-db-name>" # e.g., postgres or bp_tracker_db
+        export DB_SSLMODE="require"
+        ```
+    *   **Run the Migration Script:** Execute the Go script from the project root.
+        ```bash
+        go run scripts/migrate_schema.go
+        ```
+    *   **Note:** Running this script locally requires network connectivity from your machine to the RDS instance/proxy within the VPC (e.g., via VPN, bastion host, or temporarily adjusting security groups - use caution).
+    *   **Alternative:** Integrate this script execution into a CI/CD pipeline step that runs within your AWS environment (e.g., using AWS CodeBuild) for more secure and automated database access.
+5.  **Update Lambda Function:** Update the Lambda function to use the new Docker image tag pushed to ECR.
+    *   **Terraform:** Update the `ecr_image_tag` variable in your Terraform configuration (e.g., in `terraform.tfvars` or via `-var="ecr_image_tag=<new_tag>"`) and run `terraform apply`.
+    *   **AWS CLI:** Use the `aws lambda update-function-code` command:
+        ```bash
+        aws lambda update-function-code --function-name bp-tracker-app --image-uri <account-id>.dkr.ecr.<region>.amazonaws.com/bp-tracker:<new_tag>
+        ```
+    *   **AWS Console:** Manually update the image URI in the Lambda function's configuration.
+
 This setup provides a serverless execution model suitable for infrequent requests, minimizing costs while retaining data persistence through RDS.
