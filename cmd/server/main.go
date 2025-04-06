@@ -67,6 +67,10 @@ func init() {
 		// Endpoint to get statistics as JSON
 		apiGroup.GET("/stats", gin.WrapF(h.GetStatsHandler))
 		// Add other future API endpoints here
+		// Endpoint to delete a specific reading by ID
+		// NOTE: The path parameter :id needs to be handled by the handler logic
+		// since we are wrapping http.HandlerFunc. A full Gin handler would use c.Param("id").
+		apiGroup.DELETE("/readings/:id", gin.WrapF(h.DeleteReadingHandler))
 
 		// --- Development/Testing Endpoints ---
 		devGroup := apiGroup.Group("/dev")

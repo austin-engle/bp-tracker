@@ -12,6 +12,8 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"strconv"
+	"strings"
 	"time"
 
 	"bp-tracker/internal/database"
@@ -314,6 +316,52 @@ func (h *Handler) ClearHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	respondWithJSON(w, map[string]string{"message": "Successfully cleared all readings"})
+}
+
+// DeleteReadingHandler handles requests to delete a specific reading.
+func (h *Handler) DeleteReadingHandler(w http.ResponseWriter, r *http.Request) {
+	// Need to get the ID from the URL path parameter
+	// Using ginadapter means we access parameters via gin context,
+	// but since we wrapped http.HandlerFunc, we need a way to access it.
+	// This might require adjusting how routes are handled or using a different adapter
+	// if direct path param access is needed without full Gin context.
+
+	// --- WORKAROUND (Less Ideal): Extract ID from URL path string ---
+	// Assumes URL like /api/readings/123
+	// NOTE: This is fragile and depends on the exact path registered in main.go
+	// A better solution involves using a router that properly populates context/vars.
+	pathParts := strings.Split(strings.Trim(r.URL.Path, "/"), "/")
+	if len(pathParts) < 3 { // Expecting ["api", "readings", "id"]
+		 log.Printf("ERROR DeleteReadingHandler: Invalid path structure: %s", r.URL.Path)
+		 respondWithError(w, "Invalid request path for deleting reading", http.StatusBadRequest)
+		 return
+	}
+	idStr := pathParts[len(pathParts)-1] // Get the last part as ID
+	// --- End Workaround ---
+
+	log.Printf("Received request to delete reading with ID string: %s", idStr)
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		log.Printf("ERROR DeleteReadingHandler: Invalid ID format '%s': %v", idStr, err)
+		respondWithError(w, "Invalid reading ID format", http.StatusBadRequest)
+		return
+	}
+
+	err = h.db.DeleteReading(id)
+	if err != nil {
+		// Check if it's a "not found" error specifically
+		if strings.Contains(err.Error(), "no reading found") {
+			 log.Printf("INFO DeleteReadingHandler: Reading ID %d not found: %v", id, err)
+			 respondWithError(w, err.Error(), http.StatusNotFound) // 404 Not Found
+		} else {
+			 log.Printf("ERROR DeleteReadingHandler: Failed to delete ID %d: %v", id, err)
+			respondWithError(w, fmt.Sprintf("Error deleting reading: %v", err), http.StatusInternalServerError)
+		}
+		return
+	}
+
+	respondWithJSON(w, map[string]string{"message": fmt.Sprintf("Successfully deleted reading %d", id)})
 }
 
 // respondWithError sends an error response as JSON

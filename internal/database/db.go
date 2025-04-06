@@ -298,6 +298,28 @@ func (db *DB) SeedReadings(readings []*models.Reading) error {
 	return nil
 }
 
+// DeleteReading deletes a specific reading by its ID.
+func (db *DB) DeleteReading(id int64) error {
+	query := `DELETE FROM readings WHERE id = $1`
+	result, err := db.Exec(query, id)
+	if err != nil {
+		return fmt.Errorf("error executing delete query for id %d: %w", id, err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		// Log error but don't necessarily fail the operation if delete worked
+		log.Printf("Warning: Could not get rows affected after delete for id %d: %v", id, err)
+	}
+
+	if rowsAffected == 0 {
+		return fmt.Errorf("no reading found with id %d to delete", id)
+	}
+
+	log.Printf("Successfully deleted reading with id %d (%d rows affected)\n", id, rowsAffected)
+	return nil
+}
+
 // Close closes the database connection
 func (db *DB) Close() error {
 	return db.DB.Close()
