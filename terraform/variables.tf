@@ -73,7 +73,7 @@ variable "lambda_timeout" {
 variable "ecr_image_tag" {
   description = "Tag of the Docker image in ECR to deploy (e.g., 'latest' or a commit hash)"
   type        = string
-  default     = "v0.0.4"
+  default     = "v0.0.6"
 }
 
 variable "tags" {

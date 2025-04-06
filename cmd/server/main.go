@@ -4,6 +4,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"log"
 	"net/http" // Needed for http.Dir and handler funcs
 
@@ -70,9 +71,21 @@ func init() {
 
 // LambdaHandler is the main handler function for AWS Lambda
 func LambdaHandler(ctx context.Context, req events.APIGatewayProxyRequest) (events.APIGatewayProxyResponse, error) {
+	// Log the raw request event structure as JSON for detailed debugging
+	requestBytes, _ := json.Marshal(req) // Ignoring marshalling error for logging purposes
+	log.Printf("RAW REQUEST EVENT: %s\n", string(requestBytes))
+
+	// Original logging (keeping it for now)
 	log.Printf("Received request: Method=%s Path=%s\n", req.HTTPMethod, req.Path)
+
+	// Call the Gin adapter
 	resp, err := ginLambda.ProxyWithContext(ctx, req)
+
+	// Log the response details
+	responseBytes, _ := json.Marshal(resp) // Ignoring marshalling error for logging purposes
+	log.Printf("RAW RESPONSE: %s\n", string(responseBytes))
 	log.Printf("Sending response: StatusCode=%d Body=%.50s... Error=%v\n", resp.StatusCode, resp.Body, err)
+
 	return resp, err
 }
 

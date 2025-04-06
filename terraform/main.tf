@@ -297,16 +297,15 @@ resource "aws_lambda_function" "app" {
     }
   }
 
-  # VPC configuration to access RDS Proxy
+  # VPC configuration to access RDS Proxy (or DB directly in this case)
   vpc_config {
     subnet_ids         = module.vpc.private_subnets
     security_group_ids = [aws_security_group.lambda.id]
   }
 
   # TEMPORARY CHANGE: Depends directly on the DB instance now, not the proxy
-  # Depends on the proxy being available and ECR image existing
-  # depends_on = [aws_db_proxy.main, aws_ecr_repository.app]
   depends_on = [aws_db_instance.main, aws_ecr_repository.app]
+  # depends_on = [aws_db_proxy.main, aws_ecr_repository.app]
 
   tags = var.tags
 }
@@ -326,7 +325,7 @@ resource "aws_apigatewayv2_integration" "lambda" {
   integration_type   = "AWS_PROXY" # Use Lambda proxy integration
   integration_method = "POST" # Always POST for AWS_PROXY
   integration_uri    = aws_lambda_function.app.invoke_arn
-  payload_format_version = "2.0" # Use payload format v2.0 for simpler event structure
+  payload_format_version = "1.0" # Changed to v1.0
 }
 
 # Default route to catch all requests (for application access)

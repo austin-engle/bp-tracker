@@ -28,15 +28,22 @@ type Handler struct {
 
 // New creates a new Handler instance
 func New(db *database.DB) (*Handler, error) {
+	log.Println("Parsing templates...")
 	tmpl, err := template.ParseGlob("web/templates/*.html")
 	if err != nil {
 		return nil, errors.Join(errors.New("failed to parse templates"), err)
 	}
+	log.Println("Templates parsed successfully.")
 
-	return &Handler{
+	h := &Handler{
 		db:        db,
 		templates: tmpl,
-	}, nil
+	}
+
+	// Log handler methods to confirm presence
+	log.Printf("Handler created. HomeHandler: %p, MigrateHandler: %p\n", h.HomeHandler, h.MigrateHandler)
+
+	return h, nil
 }
 
 // HomeHandler displays the main page
@@ -162,8 +169,9 @@ func (h *Handler) MigrateHandler(w http.ResponseWriter, r *http.Request) {
 	schemaPath := "schema.sql"
 	schemaBytes, err := ioutil.ReadFile(schemaPath)
 	if err != nil {
-		msg := fmt.Sprintf("Error reading schema file %s: %v", schemaPath, err)
-		log.Printf("ERROR MigrateHandler: %s", msg)
+		// Specific error for file reading
+		msg := fmt.Sprintf("MIGRATION_ERROR: Error reading schema file %s: %v", schemaPath, err)
+		log.Println(msg) // Use Println for consistency
 		respondWithError(w, msg, http.StatusInternalServerError)
 		return
 	}
@@ -175,27 +183,30 @@ func (h *Handler) MigrateHandler(w http.ResponseWriter, r *http.Request) {
 
 	tx, err := h.db.BeginTx(ctx, nil)
 	if err != nil {
-		msg := fmt.Sprintf("Error starting transaction: %v", err)
-		log.Printf("ERROR MigrateHandler: %s", msg)
+		// Specific error for transaction start
+		msg := fmt.Sprintf("MIGRATION_ERROR: Error starting transaction: %v", err)
+		log.Println(msg)
 		respondWithError(w, msg, http.StatusInternalServerError)
 		return
 	}
 
 	_, err = tx.ExecContext(ctx, schemaSQL)
 	if err != nil {
-		msg := fmt.Sprintf("Error executing schema: %v", err)
-		log.Printf("ERROR MigrateHandler: %s", msg)
+		// Specific error for schema execution
+		msg := fmt.Sprintf("MIGRATION_ERROR: Error executing schema: %v", err)
+		log.Println(msg)
 		// Attempt to rollback
 		if rollbackErr := tx.Rollback(); rollbackErr != nil {
-			log.Printf("ERROR MigrateHandler - Error rolling back transaction: %v", rollbackErr)
+			log.Printf("ERROR MigrateHandler - Error rolling back transaction after schema execution failure: %v", rollbackErr)
 		}
 		respondWithError(w, msg, http.StatusInternalServerError)
 		return
 	}
 
 	if err := tx.Commit(); err != nil {
-		msg := fmt.Sprintf("Error committing transaction: %v", err)
-		log.Printf("ERROR MigrateHandler: %s", msg)
+		// Specific error for commit
+		msg := fmt.Sprintf("MIGRATION_ERROR: Error committing transaction: %v", err)
+		log.Println(msg)
 		respondWithError(w, msg, http.StatusInternalServerError)
 		return
 	}
@@ -206,6 +217,7 @@ func (h *Handler) MigrateHandler(w http.ResponseWriter, r *http.Request) {
 
 // respondWithError sends an error response as JSON
 func respondWithError(w http.ResponseWriter, message string, code int) {
+	log.Printf("Responding with error (Code %d): %s", code, message) // Add logging here
 	response := map[string]string{"error": message}
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(code)
@@ -217,6 +229,7 @@ func respondWithError(w http.ResponseWriter, message string, code int) {
 
 // respondWithJSON sends a success response as JSON
 func respondWithJSON(w http.ResponseWriter, data interface{}) {
+	log.Printf("Responding with success: %v", data) // Add logging here
 	w.Header().Set("Content-Type", "application/json")
 	if err := json.NewEncoder(w).Encode(data); err != nil {
 		// Log error if response writing fails
