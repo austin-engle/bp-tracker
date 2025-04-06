@@ -74,4 +74,8 @@ This guide provides the minimal steps to deploy and run the Blood Pressure Track
 6.  **Access Application:**
     *   Open the `INVOKE_URL` in your web browser.
 
-You should now see the Blood Pressure Tracker application interface running on AWS Lambda.
+7.  **Seed Data:**
+  `curl -X POST https://8unr4sj303.execute-api.us-west-2.amazonaws.com/api/dev/seed`
+
+7.a Clear Seeded Data
+  `curl -X DELETE https://your-api-gateway-id.execute-api.your-region.amazonaws.com/api/dev/clear`

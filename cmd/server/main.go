@@ -66,6 +66,14 @@ func init() {
 		// Add other future API endpoints here
 		// Endpoint to get statistics as JSON
 		apiGroup.GET("/stats", gin.WrapF(h.GetStatsHandler))
+		// Add other future API endpoints here
+
+		// --- Development/Testing Endpoints ---
+		devGroup := apiGroup.Group("/dev")
+		{
+			devGroup.POST("/seed", gin.WrapF(h.SeedHandler))     // Add sample data
+			devGroup.DELETE("/clear", gin.WrapF(h.ClearHandler)) // Clear all data
+		}
 	}
 
 	// Serve static files using Gin's StaticFS

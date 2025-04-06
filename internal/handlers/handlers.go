@@ -262,6 +262,60 @@ func (h *Handler) GetStatsHandler(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, stats)
 }
 
+// --- DEVELOPMENT HANDLERS ---
+
+// SeedHandler adds sample data to the database.
+func (h *Handler) SeedHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request for /api/dev/seed")
+
+	// Define sample readings (adjust as needed)
+	now := time.Now()
+	seedData := []*models.Reading{
+		// > 90 days ago
+		{Timestamp: now.AddDate(0, 0, -100), Systolic: 125, Diastolic: 83, Pulse: 70, Classification: "Hypertension Stage 1"},
+		{Timestamp: now.AddDate(0, 0, -95), Systolic: 120, Diastolic: 79, Pulse: 68, Classification: "Normal"},
+
+		// ~ 30-90 days ago
+		{Timestamp: now.AddDate(0, 0, -45), Systolic: 133, Diastolic: 86, Pulse: 74, Classification: "Hypertension Stage 1"},
+		{Timestamp: now.AddDate(0, 0, -35), Systolic: 128, Diastolic: 82, Pulse: 71, Classification: "Elevated"},
+
+		// ~ 7-30 days ago
+		{Timestamp: now.AddDate(0, 0, -25), Systolic: 142, Diastolic: 91, Pulse: 78, Classification: "Hypertension Stage 2"},
+		{Timestamp: now.AddDate(0, 0, -15), Systolic: 138, Diastolic: 87, Pulse: 76, Classification: "Hypertension Stage 1"},
+		{Timestamp: now.AddDate(0, 0, -10), Systolic: 126, Diastolic: 83, Pulse: 72, Classification: "Hypertension Stage 1"},
+		{Timestamp: now.AddDate(0, 0, -8), Systolic: 121, Diastolic: 79, Pulse: 69, Classification: "Normal"},
+
+		// < 7 days ago
+		{Timestamp: now.AddDate(0, 0, -6), Systolic: 118, Diastolic: 78, Pulse: 65, Classification: "Normal"},
+		{Timestamp: now.AddDate(0, 0, -5), Systolic: 122, Diastolic: 81, Pulse: 70, Classification: "Elevated"},
+		{Timestamp: now.AddDate(0, 0, -3), Systolic: 135, Diastolic: 88, Pulse: 75, Classification: "Hypertension Stage 1"},
+		{Timestamp: now.AddDate(0, 0, -1), Systolic: 141, Diastolic: 90, Pulse: 76, Classification: "Hypertension Stage 2"},
+	}
+
+	err := h.db.SeedReadings(seedData)
+	if err != nil {
+		log.Printf("ERROR SeedHandler: %v", err)
+		respondWithError(w, fmt.Sprintf("Error seeding data: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	respondWithJSON(w, map[string]string{"message": fmt.Sprintf("Successfully seeded %d readings", len(seedData))})
+}
+
+// ClearHandler removes all data from the readings table.
+func (h *Handler) ClearHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request for /api/dev/clear")
+
+	err := h.db.ClearAllReadings()
+	if err != nil {
+		log.Printf("ERROR ClearHandler: %v", err)
+		respondWithError(w, fmt.Sprintf("Error clearing data: %v", err), http.StatusInternalServerError)
+		return
+	}
+
+	respondWithJSON(w, map[string]string{"message": "Successfully cleared all readings"})
+}
+
 // respondWithError sends an error response as JSON
 func respondWithError(w http.ResponseWriter, message string, code int) {
 	log.Printf("Responding with error (Code %d): %s", code, message) // Add logging here

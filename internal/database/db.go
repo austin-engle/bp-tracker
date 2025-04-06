@@ -248,6 +248,56 @@ func (db *DB) GetAllReadings() ([]*models.Reading, error) {
 	return readings, nil
 }
 
+// ClearAllReadings deletes all entries from the readings table.
+// WARNING: Use with caution, typically only for testing/development.
+func (db *DB) ClearAllReadings() error {
+	query := `DELETE FROM readings`
+	_, err := db.Exec(query)
+	if err != nil {
+		return fmt.Errorf("error clearing readings table: %w", err)
+	}
+	log.Println("Successfully cleared all readings from the database.")
+	return nil
+}
+
+// SeedReadings inserts multiple sample readings into the database.
+// Uses a transaction for efficiency and atomicity.
+func (db *DB) SeedReadings(readings []*models.Reading) error {
+	ctx := context.Background() // Use background context for seeding operation
+	tx, err := db.BeginTx(ctx, nil)
+	if err != nil {
+		return fmt.Errorf("error starting transaction for seeding: %w", err)
+	}
+	// Defer rollback in case of error
+	defer tx.Rollback() // Rollback is a no-op if Commit succeeds
+
+	query := `
+        INSERT INTO readings (timestamp, systolic, diastolic, pulse, classification)
+        VALUES ($1, $2, $3, $4, $5)
+    `
+	stmt, err := tx.PrepareContext(ctx, query)
+	if err != nil {
+		return fmt.Errorf("error preparing statement for seeding: %w", err)
+	}
+	defer stmt.Close()
+
+	for _, r := range readings {
+		_, err := stmt.ExecContext(ctx, r.Timestamp, r.Systolic, r.Diastolic, r.Pulse, r.Classification)
+		if err != nil {
+			// Error occurred, transaction will be rolled back by defer
+			return fmt.Errorf("error inserting seed reading (timestamp %v): %w", r.Timestamp, err)
+		}
+	}
+
+	// All insertions successful, commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("error committing transaction for seeding: %w", err)
+	}
+
+	log.Printf("Successfully seeded %d readings into the database.\n", len(readings))
+	return nil
+}
+
 // Close closes the database connection
 func (db *DB) Close() error {
 	return db.DB.Close()
