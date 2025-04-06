@@ -13,10 +13,10 @@ output "rds_instance_endpoint" {
   value       = aws_db_instance.main.endpoint
 }
 
-output "db_proxy_endpoint" {
-  description = "Endpoint address of the DB Proxy"
-  value       = aws_db_proxy.main.endpoint
-}
+# output "db_proxy_endpoint" {
+#   description = "Endpoint address of the DB Proxy"
+#   value       = aws_db_proxy.main.endpoint
+# }
 
 output "lambda_function_name" {
   description = "Name of the deployed Lambda function"

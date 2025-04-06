@@ -58,6 +58,16 @@ func init() {
 	// Use POST for potentially state-changing operation
 	router.POST("/migrate", gin.WrapF(h.MigrateHandler))
 
+	// --- API Endpoints for external clients (e.g., iOS app) ---
+	apiGroup := router.Group("/api")
+	{
+		// Endpoint to get all readings as JSON
+		apiGroup.GET("/readings", gin.WrapF(h.GetAllReadingsJSONHandler))
+		// Add other future API endpoints here
+		// Endpoint to get statistics as JSON
+		apiGroup.GET("/stats", gin.WrapF(h.GetStatsHandler))
+	}
+
 	// Serve static files using Gin's StaticFS
 	// Note: Ensure the path in the Dockerfile copies web/static correctly
 	// The path served ("/static") must match links in HTML

@@ -196,28 +196,28 @@ resource "aws_iam_role_policy_attachment" "rds_proxy_secret_attachment" {
   policy_arn = "arn:aws:iam::aws:policy/SecretsManagerReadWrite" # Might need refinement to least privilege
 }
 
-resource "aws_db_proxy" "main" {
-  name                   = "${var.project_name}-proxy"
-  debug_logging          = false
-  engine_family          = "POSTGRESQL"
-  idle_client_timeout    = 1800
-  require_tls            = true # Enforce TLS
-  role_arn               = aws_iam_role.rds_proxy_secret_role.arn
-  vpc_security_group_ids = [aws_security_group.db.id]
-  vpc_subnet_ids         = module.vpc.private_subnets
+# resource "aws_db_proxy" "main" {
+#   name                   = "${var.project_name}-proxy"
+#   debug_logging          = false
+#   engine_family          = "POSTGRESQL"
+#   idle_client_timeout    = 1800
+#   require_tls            = true # Enforce TLS
+#   role_arn               = aws_iam_role.rds_proxy_secret_role.arn
+#   vpc_security_group_ids = [aws_security_group.db.id]
+#   vpc_subnet_ids         = module.vpc.private_subnets
 
-  auth {
-    auth_scheme = "SECRETS"
-    description = "Credentials for DB"
-    iam_auth    = "DISABLED"
-    secret_arn  = aws_secretsmanager_secret.db_password.arn
-  }
+#   auth {
+#     auth_scheme = "SECRETS"
+#     description = "Credentials for DB"
+#     iam_auth    = "DISABLED"
+#     secret_arn  = aws_secretsmanager_secret.db_password.arn
+#   }
 
-  tags = var.tags
+#   tags = var.tags
 
-  # Depends on the DB instance being available
-  depends_on = [aws_db_instance.main]
-}
+#   # Depends on the DB instance being available
+#   depends_on = [aws_db_instance.main]
+# }
 
 # --- IAM --- Role and Policies for Lambda ---
 resource "aws_iam_role" "lambda_exec_role" {

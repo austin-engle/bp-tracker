@@ -215,6 +215,53 @@ func (h *Handler) MigrateHandler(w http.ResponseWriter, r *http.Request) {
 	respondWithJSON(w, map[string]string{"message": "Schema migration applied successfully!"})
 }
 
+// --- NEW HANDLER ---
+// GetAllReadingsJSONHandler handles the request to fetch all readings as JSON.
+func (h *Handler) GetAllReadingsJSONHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request for /api/readings")
+
+	readings, err := h.db.GetAllReadings()
+	if err != nil {
+		log.Printf("ERROR GetAllReadingsJSONHandler - fetching readings: %v", err)
+		respondWithError(w, "Error fetching readings", http.StatusInternalServerError)
+		return
+	}
+
+	// Handle case where there are no readings
+	if readings == nil {
+		readings = []*models.Reading{} // Return empty slice of pointers
+	}
+
+	log.Printf("Successfully fetched %d readings for /api/readings", len(readings))
+	respondWithJSON(w, readings)
+}
+
+// --- NEW HANDLER ---
+// GetStatsHandler handles the request to fetch statistics as JSON.
+func (h *Handler) GetStatsHandler(w http.ResponseWriter, r *http.Request) {
+	log.Println("Received request for /api/stats")
+
+	stats, err := h.db.GetStats()
+	if err != nil {
+		log.Printf("ERROR GetStatsHandler - fetching stats: %v", err)
+		respondWithError(w, "Error fetching statistics", http.StatusInternalServerError)
+		return
+	}
+
+	// Handle case where stats might be partially nil (e.g., no readings yet)
+	// The frontend should handle nil values gracefully.
+	if stats == nil {
+		// Respond with an empty object or default stats if preferred?
+		// For now, let's rely on the DB layer returning a valid (potentially zeroed) Stats object.
+		// If h.db.GetStats can return nil, we might need:
+		// stats = &models.Stats{}
+		log.Println("Warning: GetStats returned nil, sending potentially empty stats object.")
+	}
+
+	log.Println("Successfully fetched stats for /api/stats")
+	respondWithJSON(w, stats)
+}
+
 // respondWithError sends an error response as JSON
 func respondWithError(w http.ResponseWriter, message string, code int) {
 	log.Printf("Responding with error (Code %d): %s", code, message) // Add logging here
