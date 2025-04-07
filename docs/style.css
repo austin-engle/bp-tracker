@@ -196,11 +196,26 @@ main section#about:hover h2 {
 }
 
 /* Tech Stack specific styling */
+#tech ul {
+    list-style: none; /* Remove bullets */
+    padding-left: 0; /* Remove default padding */
+    text-align: center; /* Center list items */
+}
+
+#tech li {
+    margin-bottom: 15px; /* Space between items */
+    font-size: 1.1em; /* Slightly larger text */
+    color: var(--secondary-color); /* Match intro text color */
+}
+
 #tech ul code {
     background-color: #e9ecef;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 0.9em;
+    padding: 3px 8px; /* Slightly more padding */
+    border-radius: 5px; /* Slightly more radius */
+    font-size: 0.95em;
+    color: var(--text-dark); /* Darker text for code tags */
+    margin: 0 3px; /* Add slight horizontal margin */
+    white-space: nowrap; /* Prevent wrapping within code tags */
 }
 
 /* Footer */
