@@ -32,7 +32,7 @@ body {
 
 /* Header / Hero Section */
 header.hero {
-    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    background: linear-gradient(135deg, #0061c9, var(--primary-color)); /* Adjusted gradient start */
     color: #fff;
     text-align: center;
     padding: 60px 20px;
@@ -70,24 +70,36 @@ main section {
     padding: 30px;
     margin-bottom: 30px;
     box-shadow: 0 3px 10px var(--shadow-color);
-    border: 1px solid var(--border-light);
+    /* Replaced border with border-top */
+    border: none;
+    border-top: 4px solid var(--primary-color);
     transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Added transition */
 }
 
 /* Add hover effect to cards */
 main section:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
+    transform: translateY(-5px); /* Slightly more lift */
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15); /* Stronger shadow */
+}
+
+/* Change h2 color on card hover */
+main section:hover h2 {
+    color: #0056b3; /* Darken primary color on hover */
+}
+
+/* Animate checkmarks on card hover */
+main section#features:hover li::before {
+    transform: translateX(3px); /* Move checkmark slightly right */
 }
 
 main h2 {
     color: var(--primary-color);
-    /* border-bottom: 2px solid var(--primary-color); */ /* Remove border, use spacing */
     padding-bottom: 0;
     margin-bottom: 20px;
     margin-top: 0; /* Remove default top margin */
     font-size: 1.8em;
-    font-weight: 600;
+    font-weight: 700; /* Bolder section titles */
+    transition: color 0.2s ease-in-out; /* Add transition for hover effect */
 }
 
 main ul {
@@ -110,6 +122,7 @@ main li::before {
     left: 0;
     top: 0;
     font-size: 1.2em; /* Make checkmark slightly larger */
+    transition: transform 0.2s ease-in-out; /* Add transition for hover effect */
 }
 
 /* Tech Stack specific styling */
