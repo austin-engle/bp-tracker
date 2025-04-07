@@ -3,50 +3,92 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>BP Tracker - Blood Pressure Monitoring</title>
+    <title>Blood Pressure Tracker - Your Health Data, Simplified</title>
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <header>
-        <h1>BP Tracker</h1>
-        <p>A simple application to track your blood pressure readings.</p>
+    <!-- Hero section moved outside the main container -->
+    <header class="hero">
+        <div class="hero-content-container"> <!-- Added inner container for content -->
+            <div class="hero-text">
+                <h1>Blood Pressure Tracker</h1>
+                <p>Take control of your health. The simple, secure, and modern way to monitor your blood pressure anytime, anywhere.</p>
+                <a href="https://github.com/austin-engle/bp-tracker" class="button hero-cta-button" target="_blank">Explore the Code</a>
+            </div>
+            <div class="hero-image">
+                 <img src="image.png" alt="Blood Pressure Tracker iOS App Screenshot" class="app-screenshot">
+            </div>
+        </div> <!-- /hero-content-container -->
     </header>
 
-    <main>
-        <section id="about">
-            <h2>About the App</h2>
-            <p>BP Tracker helps you monitor your systolic, diastolic, and pulse readings over time. It features both a web interface and a dedicated iOS application.</p>
-            <p>The backend is powered by a serverless Go application running on AWS Lambda with data stored securely in RDS.</p>
-            <!-- Add link to iOS app if available on App Store later -->
-            <!-- <a href="[App Store Link]" class="app-store-link">Get the iOS App</a> -->
-        </section>
+    <!-- Main content remains inside the container -->
+    <div class="container">
+        <main>
+            <section id="about">
+                <h2>Your Health Data, Simplified & Secure</h2>
+                <!-- Image moved to hero -->
+                <p>Understanding your blood pressure shouldn't be complicated. Blood Pressure Tracker began as a personal tool and evolved into a demonstration of modern full-stack development (Go, SwiftUI, AWS, Terraform). It provides an easy-to-use interface on both iOS and the web, aiming to be a simple, reliable, and open-source solution. Your data is stored securely using robust cloud technology (AWS Lambda, RDS), ensuring it's private and accessible whenever you need it.</p>
+                <div class="about-cta"> <!-- Wrapper for centering -->
+                    <p>Curious how it works under the hood? Dive into the codebase:</p>
+                    <a href="https://github.com/austin-engle/bp-tracker" class="button" target="_blank">Explore the Code on GitHub</a>
+                </div> <!-- /about-cta -->
+                <!-- Add link to iOS app if available on App Store later -->
+                <!-- <a href="[App Store Link]" class="app-store-link">Get the iOS App</a> -->
+            </section>
 
-        <section id="features">
-            <h2>Features</h2>
-            <ul>
-                <li>Simple interface for submitting readings.</li>
-                <li>View your history and track trends.</li>
-                <li>Calculates averages over 7 days, 30 days, and all time.</li>
-                <li>Provides blood pressure classification based on latest guidelines.</li>
-                <li>Data accessible via web and iOS app.</li>
-                 <li>Securely stores data in the cloud.</li>
-            </ul>
-        </section>
+            <section id="features">
+                <h2>Why Choose Blood Pressure Tracker?</h2>
+                <p>Get the insights you need with these core features:</p>
+                <div class="features-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">[✓]</div> <!-- Icon Placeholder -->
+                        <h3>Effortless Tracking</h3>
+                        <p>Quickly submit Systolic, Diastolic, and Pulse readings from any device.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">[📊]</div> <!-- Icon Placeholder -->
+                        <h3>Visualize Trends</h3>
+                        <p>See your history at a glance with intuitive charts (iOS).</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">[#]</div> <!-- Icon Placeholder -->
+                        <h3>Automatic Averages</h3>
+                        <p>Instantly know your 7-day, 30-day, and overall averages.</p>
+                    </div>
+                    <div class="feature-card">
+                        <div class="feature-icon">[💡]</div> <!-- Icon Placeholder -->
+                        <h3>Understand Numbers</h3>
+                        <p>Get immediate blood pressure classification based on latest guidelines.</p>
+                    </div>
+                     <div class="feature-card">
+                        <div class="feature-icon">[💻📱]</div> <!-- Icon Placeholder -->
+                        <h3>Cross-Platform</h3>
+                        <p>Use the dedicated iOS app or the simple web interface.</p>
+                    </div>
+                     <div class="feature-card">
+                        <div class="feature-icon">[🔒]</div> <!-- Icon Placeholder -->
+                        <h3>Secure & Private</h3>
+                        <p>Your health data is safe with robust AWS cloud storage.</p>
+                    </div>
+                </div>
+            </section>
 
-        <section id="tech">
-             <h2>Technology Stack</h2>
-            <ul>
-                 <li>Backend: Go (Gin), AWS Lambda, API Gateway, RDS PostgreSQL, Secrets Manager</li>
-                 <li>Frontend (iOS): Swift, SwiftUI, Swift Charts</li>
-                 <li>Infrastructure: Terraform, Docker</li>
-                 <li>This Site: HTML, CSS (via GitHub Pages)</li>
-             </ul>
-        </section>
+            <section id="tech">
+                 <h2>Built With Modern Tools</h2>
+                 <p>Leveraging reliable and scalable technologies:</p>
+                 <ul>
+                     <li>Backend: <code>Go (Gin)</code>, <code>AWS Lambda</code>, <code>API Gateway</code>, <code>RDS PostgreSQL</code>, <code>Secrets Manager</code></li>
+                     <li>Frontend (iOS): <code>Swift</code>, <code>SwiftUI</code>, <code>Swift Charts</code></li>
+                     <li>Infrastructure: <code>Terraform</code>, <code>Docker</code></li>
+                     <li>This Site: <code>HTML</code>, <code>CSS</code> (via GitHub Pages)</li>
+                 </ul>
+            </section>
 
-    </main>
+        </main>
 
-    <footer>
-        <p>&copy; [Current Year] BP Tracker Project. <!-- Consider adding your name/GitHub link --></p>
-    </footer>
+        <footer>
+            <p>&copy; 2025 Blood Pressure Tracker Project. <!-- Consider adding: Developed by [Your Name] - [Link to GitHub] --></p>
+        </footer>
+    </div> <!-- /.container -->
 </body>
 </html>

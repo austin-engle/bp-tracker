@@ -1,95 +1,338 @@
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+/* Variables (Optional but helpful) */
+:root {
+    --primary-color: #007bff; /* Keep the blue */
+    --secondary-color: #6c757d; /* Gray for secondary text */
+    --background-light: #f8f9fa;
+    --background-card: #ffffff;
+    --text-dark: #212529;
+    --border-light: #dee2e6;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --hero-gradient-start: #0056b3; /* Darker blue start */
+    --hero-gradient-end: #007bff;   /* Primary blue end */
+}
+
 /* Basic Reset & Body Styling */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    line-height: 1.6;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
     margin: 0;
     padding: 0;
-    background-color: #f8f9fa;
-    color: #333;
+    background-color: var(--background-light);
+    color: var(--text-dark);
+    font-weight: 300; /* Default to lighter weight */
 }
 
-/* Container */
-body > header,
-main,
-body > footer {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+/* Container for main content below hero */
+.container {
+    max-width: 1100px;
+    margin: 0 auto 30px auto; /* Remove top margin, keep bottom */
+    padding: 0 20px;
 }
 
-/* Header */
-header {
+/* Header / Hero Section */
+header.hero {
+    background: linear-gradient(135deg, var(--hero-gradient-start), var(--hero-gradient-end));
+    color: #fff;
+    padding: 100px 20px; /* Increased padding significantly */
+    /* Removed border-radius, margin-bottom, box-shadow */
+    width: 100%; /* Ensure full width */
+    box-sizing: border-box;
+    /* display: flex; Flex applied to inner container now */
+    /* align-items: center; */
+    /* gap: 50px; */
+    /* overflow: hidden; May not be needed here */
+}
+
+/* Inner container to center hero content */
+.hero-content-container {
+    max-width: 1150px; /* Slightly wider than main container */
+    margin: 0 auto;    /* Center horizontally */
+    display: flex;
+    align-items: center;
+    gap: 60px; /* Increased gap */
+}
+
+.hero-text {
+    flex: 1;
+    text-align: left;
+}
+
+header.hero h1 {
+    margin-bottom: 0.3em;
+    font-size: 5.5em; /* Further increase size */
+    font-weight: 700;
+    letter-spacing: -2.5px; /* Adjust spacing */
+    line-height: 1.05;
+    /* Text gradient */
+    background: linear-gradient(45deg, #ffffff, #e0f2ff);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: #fff;
+}
+
+header.hero p {
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.4em; /* Increased size */
+    font-weight: 300;
+    max-width: 550px; /* Increased max-width */
+    margin-bottom: 40px; /* Increased space before button */
+}
+
+/* Hero CTA Button specific style */
+.hero-cta-button {
+    padding: 16px 40px; /* Larger padding */
+    font-size: 1.2em; /* Larger font size */
+    margin-top: 0;
+}
+
+.hero-image {
+    flex-basis: 350px; /* Increased basis */
+    flex-shrink: 0;
     text-align: center;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
 }
 
-header h1 {
-    margin-bottom: 0.5em;
-    color: #007bff; /* Blue accent */
+.app-screenshot {
+    max-width: 100%;
+    height: auto;
+    border-radius: 22px; /* Slight increase */
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35); /* Enhanced shadow */
+    border: 6px solid rgba(255, 255, 255, 0.6); /* Adjusted border */
+    transform: rotate(4deg); /* Increased rotation slightly */
+    transition: transform 0.3s ease-in-out;
 }
 
-header p {
-    color: #6c757d;
-    font-size: 1.1em;
+.app-screenshot:hover {
+    transform: rotate(1deg) scale(1.04); /* Adjusted hover */
 }
 
-/* Main Content Sections */
+/* Main content section styling */
 main section {
-    margin-bottom: 30px;
+    background-color: var(--background-light); /* Ensure all sections start light */
+    padding: 60px 20px;
+    margin-bottom: 0;
+    border: none;
 }
+
+/* REMOVE the alternating background rule */
+/*
+main section:nth-of-type(even) {
+     background-color: var(--background-card);
+}
+*/
 
 main h2 {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 5px;
+    color: var(--primary-color);
+    padding-bottom: 0;
+    margin-bottom: 20px; /* Adjust margin */
+    margin-top: 0;
+    font-size: 2.5em; /* Increased size */
+    font-weight: 700;
+    text-align: center;
+}
+
+main section > p:first-of-type {
+    text-align: center;
+    max-width: 700px; /* Increased width */
+    margin-left: auto;
+    margin-right: auto;
+    margin-bottom: 45px; /* Increased space */
+    font-size: 1.15em; /* Slight increase */
+    color: var(--secondary-color);
+}
+
+/* Remove hover effect from About section h2 */
+main section#about:hover h2 {
+     color: var(--primary-color);
+}
+
+/* Centering for the CTA in the About section */
+.about-cta {
+    text-align: center;
+    margin-top: 30px; /* Add some space above the CTA */
+}
+
+/* Features Section Grid */
+.features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Wider min card size */
+    gap: 30px; /* Increased gap */
+    margin-top: 40px;
+}
+
+.feature-card {
+    background-color: #fff; /* White background for cards */
+    padding: 25px;
+    border-radius: 8px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08); /* Subtle shadow */
+    border: 1px solid var(--border-light);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.feature-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 5px 15px rgba(0,0,0,0.12);
+}
+
+.feature-icon {
+    font-size: 2.5em; /* Larger icon placeholder */
+    color: var(--primary-color);
     margin-bottom: 15px;
+    line-height: 1;
 }
 
-main ul {
-    list-style: disc;
-    padding-left: 20px;
-}
-
-main li {
+.feature-card h3 {
+    font-size: 1.3em;
+    color: var(--text-dark);
     margin-bottom: 8px;
+    font-weight: 600;
+}
+
+.feature-card p {
+    font-size: 0.95em;
+    color: var(--secondary-color);
+    line-height: 1.6;
+}
+
+/* Tech Stack specific styling */
+#tech ul {
+    list-style: none; /* Remove bullets */
+    padding-left: 0; /* Remove default padding */
+    text-align: center; /* Center list items */
+}
+
+#tech li {
+    margin-bottom: 15px; /* Space between items */
+    font-size: 1.1em; /* Slightly larger text */
+    color: var(--secondary-color); /* Match intro text color */
+}
+
+#tech ul code {
+    background-color: #e9ecef;
+    padding: 3px 8px; /* Slightly more padding */
+    border-radius: 5px; /* Slightly more radius */
+    font-size: 0.95em;
+    color: var(--text-dark); /* Darker text for code tags */
+    margin: 0 3px; /* Add slight horizontal margin */
+    white-space: nowrap; /* Prevent wrapping within code tags */
 }
 
 /* Footer */
 footer {
     text-align: center;
-    margin-top: 30px;
+    margin-top: 40px;
     padding-top: 20px;
-    border-top: 1px solid #eee;
+    padding-bottom: 20px;
     font-size: 0.9em;
-    color: #6c757d;
+    color: var(--secondary-color);
+    border-top: 1px solid var(--border-light);
 }
 
-/* Links (Example for potential future links) */
+/* Links */
 a {
-    color: #007bff;
+    color: var(--primary-color);
     text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease-in-out;
 }
 
 a:hover {
-    text-decoration: underline;
-}
-
-.app-store-link { /* Example styling for an app store button */
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: #fff;
-    border-radius: 5px;
-    font-weight: bold;
-    margin-top: 15px;
-}
-
-.app-store-link:hover {
-    background-color: #0056b3;
+    color: #0056b3;
     text-decoration: none;
+}
+
+/* Button Styling (Example) */
+.button, .app-store-link {
+    display: inline-block;
+    padding: 12px 25px;
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 25px; /* Pill shape */
+    font-weight: 600;
+    margin-top: 15px;
+    text-decoration: none;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    /* Refined transition */
+    transition: background-color 0.2s ease-in-out, transform 0.15s ease, box-shadow 0.2s ease;
+}
+
+.button:hover, .app-store-link:hover {
+    background-color: #0056b3;
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-3px) scale(1.03); /* Enhanced hover effect */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2); /* Stronger shadow on hover */
+}
+
+/* Responsive adjustments */
+@media (max-width: 992px) { /* Adjust breakpoint */
+    .hero-content-container {
+        flex-direction: column;
+        text-align: center;
+        gap: 40px;
+    }
+    .hero-text {
+        text-align: center;
+    }
+     header.hero p {
+        max-width: 600px; /* Adjust max width for tablet */
+        margin-left: auto;
+        margin-right: auto;
+    }
+    .hero-image {
+        flex-basis: auto;
+        width: 60%; /* Adjust width */
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    header.hero {
+        padding: 80px 20px;
+    }
+    header.hero h1 {
+        font-size: 4.0em; /* Adjust size */
+    }
+    header.hero p {
+        font-size: 1.3em;
+    }
+     .hero-image {
+        width: 70%; /* Adjust width */
+    }
+    .app-screenshot {
+         transform: rotate(0deg); /* Straighten image on mobile */
+    }
+     .app-screenshot:hover {
+        transform: rotate(0deg) scale(1.02); /* Adjust hover */
+    }
+    main h2 {
+        font-size: 2.0em;
+    }
+    .features-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+     header.hero h1 {
+        font-size: 3.2em;
+    }
+     header.hero p {
+        font-size: 1.2em;
+    }
+     .hero-image {
+        width: 85%;
+    }
+    main section {
+        padding: 50px 15px;
+    }
+     main h2 {
+         font-size: 1.8em;
+     }
 }
