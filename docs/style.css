@@ -10,6 +10,8 @@
     --text-dark: #212529;
     --border-light: #dee2e6;
     --shadow-color: rgba(0, 0, 0, 0.1);
+    --hero-gradient-start: #0056b3; /* Darker blue start */
+    --hero-gradient-end: #007bff;   /* Primary blue end */
 }
 
 /* Basic Reset & Body Styling */
@@ -23,42 +25,49 @@ body {
     font-weight: 300; /* Default to lighter weight */
 }
 
-/* Container - More padding, less reliance on direct body children */
+/* Container for main content below hero */
 .container {
-    max-width: 1100px; /* Wider container for two-column layouts */
-    margin: 30px auto;
-    padding: 0 20px; /* Add horizontal padding here */
+    max-width: 1100px;
+    margin: 0 auto 30px auto; /* Remove top margin, keep bottom */
+    padding: 0 20px;
 }
 
 /* Header / Hero Section */
 header.hero {
-    background: linear-gradient(135deg, #0061c9, var(--primary-color));
+    background: linear-gradient(135deg, var(--hero-gradient-start), var(--hero-gradient-end));
     color: #fff;
-    padding: 60px 40px; /* Reduced vertical padding slightly */
-    border-radius: 12px;
-    margin-bottom: 50px;
-    box-shadow: 0 6px 20px rgba(0, 97, 201, 0.3);
+    padding: 100px 20px; /* Increased padding significantly */
+    /* Removed border-radius, margin-bottom, box-shadow */
+    width: 100%; /* Ensure full width */
+    box-sizing: border-box;
+    /* display: flex; Flex applied to inner container now */
+    /* align-items: center; */
+    /* gap: 50px; */
+    /* overflow: hidden; May not be needed here */
+}
+
+/* Inner container to center hero content */
+.hero-content-container {
+    max-width: 1150px; /* Slightly wider than main container */
+    margin: 0 auto;    /* Center horizontally */
     display: flex;
-    /* Align items to the center vertically for better balance */
     align-items: center;
-    gap: 50px; /* Increased gap slightly */
-    overflow: hidden; /* Prevent tilted image overflow */
+    gap: 60px; /* Increased gap */
 }
 
 .hero-text {
     flex: 1;
     text-align: left;
-     /* Add padding to vertically center text relative to button? Maybe not needed if align-items works */
 }
 
 header.hero h1 {
-    margin-bottom: 0.4em;
-    font-size: 4.2em; /* Slightly adjusted size */
+    margin-bottom: 0.3em;
+    font-size: 5.5em; /* Further increase size */
     font-weight: 700;
-    letter-spacing: -2px;
-    line-height: 1.1;
+    letter-spacing: -2.5px; /* Adjust spacing */
+    line-height: 1.05;
     /* Text gradient */
-    background: linear-gradient(45deg, #ffffff, #e0f2ff); /* Adjusted gradient */
+    background: linear-gradient(45deg, #ffffff, #e0f2ff);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
@@ -66,22 +75,22 @@ header.hero h1 {
 }
 
 header.hero p {
-    color: rgba(255, 255, 255, 0.95); /* Slightly less transparent */
-    font-size: 1.3em;
+    color: rgba(255, 255, 255, 0.95);
+    font-size: 1.4em; /* Increased size */
     font-weight: 300;
-    max-width: 500px; /* Add back a max-width for better readability */
-    margin-bottom: 30px; /* Ensure space before button */
+    max-width: 550px; /* Increased max-width */
+    margin-bottom: 40px; /* Increased space before button */
 }
 
-/* Remove margin from the button itself, use margin on paragraph */
+/* Hero CTA Button specific style */
 .hero-cta-button {
-    padding: 15px 35px;
-    font-size: 1.1em;
-     margin-top: 0; /* Remove top margin here */
+    padding: 16px 40px; /* Larger padding */
+    font-size: 1.2em; /* Larger font size */
+    margin-top: 0;
 }
 
 .hero-image {
-    flex-basis: 300px; /* Slightly reduced basis */
+    flex-basis: 350px; /* Increased basis */
     flex-shrink: 0;
     text-align: center;
 }
@@ -89,62 +98,46 @@ header.hero p {
 .app-screenshot {
     max-width: 100%;
     height: auto;
-    border-radius: 20px;
-    box-shadow: 0 10px 35px rgba(0,0,0,0.3); /* Enhanced shadow */
-    border: 5px solid rgba(255, 255, 255, 0.7); /* Adjusted border */
-    transform: rotate(3deg); /* Re-ensure rotation */
-    transition: transform 0.3s ease-in-out; /* Add transition for potential hover */
+    border-radius: 22px; /* Slight increase */
+    box-shadow: 0 12px 40px rgba(0,0,0,0.35); /* Enhanced shadow */
+    border: 6px solid rgba(255, 255, 255, 0.6); /* Adjusted border */
+    transform: rotate(4deg); /* Increased rotation slightly */
+    transition: transform 0.3s ease-in-out;
 }
 
-/* Optional: Slight hover effect for screenshot */
 .app-screenshot:hover {
-    transform: rotate(1deg) scale(1.03);
+    transform: rotate(1deg) scale(1.04); /* Adjusted hover */
 }
 
-/* Card Styling for Sections */
+/* Main content section styling */
 main section {
-    background-color: var(--background-light); /* Change section background */
-    border-radius: 0; /* Remove card radius */
-    padding: 50px 20px; /* Adjust padding */
-    margin-bottom: 0; /* Remove bottom margin */
-    box-shadow: none; /* Remove card shadow */
-    /* Removed border-top */
+    background-color: var(--background-light);
+    padding: 60px 20px; /* Increased section padding */
+    margin-bottom: 0;
     border: none;
-    /* Removed transition */
 }
 
-/* Remove section hover effects */
-main section:hover {
-    transform: none;
-    box-shadow: none;
-}
-main section:hover h2 {
-    color: var(--primary-color); /* Reset h2 hover color */
-}
-
-/* Add spacing between sections using padding */
 main section:nth-of-type(even) {
-     background-color: var(--background-card); /* Alternate background */
+     background-color: var(--background-card);
 }
 
 main h2 {
     color: var(--primary-color);
     padding-bottom: 0;
-    margin-bottom: 15px; /* Adjust margin */
+    margin-bottom: 20px; /* Adjust margin */
     margin-top: 0;
-    font-size: 2.2em; /* Slightly larger section titles */
+    font-size: 2.5em; /* Increased size */
     font-weight: 700;
-    text-align: center; /* Center section titles */
-    transition: none; /* Remove transition */
+    text-align: center;
 }
 
 main section > p:first-of-type {
-    text-align: center; /* Center intro paragraphs */
-    max-width: 650px; /* Constrain width */
+    text-align: center;
+    max-width: 700px; /* Increased width */
     margin-left: auto;
     margin-right: auto;
-    margin-bottom: 40px; /* Increase space before grid/content */
-    font-size: 1.1em;
+    margin-bottom: 45px; /* Increased space */
+    font-size: 1.15em; /* Slight increase */
     color: var(--secondary-color);
 }
 
@@ -156,9 +149,9 @@ main section#about:hover h2 {
 /* Features Section Grid */
 .features-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* Responsive grid */
-    gap: 25px;
-    margin-top: 30px; /* Add space below the intro paragraph */
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); /* Wider min card size */
+    gap: 30px; /* Increased gap */
+    margin-top: 40px;
 }
 
 .feature-card {
@@ -254,45 +247,68 @@ a:hover {
 }
 
 /* Responsive adjustments */
-@media (max-width: 768px) {
-    header.hero {
+@media (max-width: 992px) { /* Adjust breakpoint */
+    .hero-content-container {
         flex-direction: column;
         text-align: center;
-        padding: 50px 20px;
+        gap: 40px;
     }
     .hero-text {
         text-align: center;
-        margin-bottom: 30px;
     }
      header.hero p {
-        max-width: none; /* Remove max-width on mobile */
-        margin-bottom: 25px;
-    }
-    header.hero h1 {
-        font-size: 3.0em; /* Further adjust size */
+        max-width: 600px; /* Adjust max width for tablet */
+        margin-left: auto;
+        margin-right: auto;
     }
     .hero-image {
-        flex-basis: auto; /* Let image size naturally */
-        width: 70%; /* Control width */
-        margin: 0 auto; /* Center image */
+        flex-basis: auto;
+        width: 60%; /* Adjust width */
+        margin: 0 auto;
+    }
+}
+
+@media (max-width: 768px) {
+    header.hero {
+        padding: 80px 20px;
+    }
+    header.hero h1 {
+        font-size: 4.0em; /* Adjust size */
+    }
+    header.hero p {
+        font-size: 1.3em;
+    }
+     .hero-image {
+        width: 70%; /* Adjust width */
     }
     .app-screenshot {
          transform: rotate(0deg); /* Straighten image on mobile */
     }
+     .app-screenshot:hover {
+        transform: rotate(0deg) scale(1.02); /* Adjust hover */
+    }
     main h2 {
-        font-size: 1.8em;
+        font-size: 2.0em;
     }
     .features-grid {
-        grid-template-columns: 1fr; /* Single column on mobile */
+        grid-template-columns: 1fr;
     }
 }
 
-/* Further responsive tweaks for smaller screens */
 @media (max-width: 480px) {
      header.hero h1 {
-        font-size: 2.8em;
+        font-size: 3.2em;
+    }
+     header.hero p {
+        font-size: 1.2em;
     }
      .hero-image {
-        width: 80%;
+        width: 85%;
     }
+    main section {
+        padding: 50px 15px;
+    }
+     main h2 {
+         font-size: 1.8em;
+     }
 }

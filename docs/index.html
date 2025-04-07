@@ -7,19 +7,22 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div class="container">
-        <header class="hero">
+    <!-- Hero section moved outside the main container -->
+    <header class="hero">
+        <div class="hero-content-container"> <!-- Added inner container for content -->
             <div class="hero-text">
                 <h1>BP Tracker</h1>
                 <p>Take control of your health. The simple, secure, and modern way to monitor your blood pressure anytime, anywhere.</p>
                 <a href="https://github.com/austin-engle/bp-tracker" class="button hero-cta-button" target="_blank">Explore the Code</a>
             </div>
             <div class="hero-image">
-                 <!-- Placeholder for an app screenshot or graphic -->
                  <img src="image.png" alt="BP Tracker iOS App Screenshot" class="app-screenshot">
             </div>
-        </header>
+        </div> <!-- /hero-content-container -->
+    </header>
 
+    <!-- Main content remains inside the container -->
+    <div class="container">
         <main>
             <section id="about">
                 <h2>Your Health Data, Simplified & Secure</h2>
