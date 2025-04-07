@@ -1,95 +1,170 @@
+/* Import Google Font */
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+/* Variables (Optional but helpful) */
+:root {
+    --primary-color: #007bff; /* Keep the blue */
+    --secondary-color: #6c757d; /* Gray for secondary text */
+    --background-light: #f8f9fa;
+    --background-card: #ffffff;
+    --text-dark: #212529;
+    --border-light: #dee2e6;
+    --shadow-color: rgba(0, 0, 0, 0.1);
+}
+
 /* Basic Reset & Body Styling */
 body {
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
-    line-height: 1.6;
+    font-family: 'Poppins', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    line-height: 1.7;
     margin: 0;
     padding: 0;
-    background-color: #f8f9fa;
-    color: #333;
+    background-color: var(--background-light);
+    color: var(--text-dark);
+    font-weight: 300; /* Default to lighter weight */
 }
 
-/* Container */
-body > header,
-main,
-body > footer {
-    max-width: 800px;
-    margin: 20px auto;
-    padding: 20px;
-    background-color: #fff;
-    border-radius: 8px;
-    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+/* Container - More padding, less reliance on direct body children */
+.container {
+    max-width: 850px;
+    margin: 30px auto;
+    padding: 0 20px; /* Add horizontal padding here */
 }
 
-/* Header */
-header {
+/* Header / Hero Section */
+header.hero {
+    background: linear-gradient(135deg, var(--primary-color), #0056b3);
+    color: #fff;
     text-align: center;
-    border-bottom: 1px solid #eee;
-    margin-bottom: 30px;
-    padding-bottom: 20px;
+    padding: 60px 20px;
+    border-radius: 8px;
+    margin-bottom: 40px;
+    box-shadow: 0 4px 15px var(--shadow-color);
 }
 
-header h1 {
+header.hero h1 {
     margin-bottom: 0.5em;
-    color: #007bff; /* Blue accent */
+    font-size: 2.8em; /* Larger title */
+    font-weight: 700;
+    letter-spacing: -1px;
 }
 
-header p {
-    color: #6c757d;
-    font-size: 1.1em;
+header.hero p {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 1.2em;
+    font-weight: 300;
+    max-width: 600px; /* Keep subtitle constrained */
+    margin: 0 auto;
 }
 
-/* Main Content Sections */
+/* Card Styling for Sections */
 main section {
+    background-color: var(--background-card);
+    border-radius: 12px; /* More rounded */
+    padding: 30px;
     margin-bottom: 30px;
+    box-shadow: 0 3px 10px var(--shadow-color);
+    border: 1px solid var(--border-light);
 }
 
 main h2 {
-    color: #007bff;
-    border-bottom: 2px solid #007bff;
-    padding-bottom: 5px;
-    margin-bottom: 15px;
+    color: var(--primary-color);
+    /* border-bottom: 2px solid var(--primary-color); */ /* Remove border, use spacing */
+    padding-bottom: 0;
+    margin-bottom: 20px;
+    margin-top: 0; /* Remove default top margin */
+    font-size: 1.8em;
+    font-weight: 600;
 }
 
 main ul {
-    list-style: disc;
-    padding-left: 20px;
+    list-style: none; /* Remove default bullets */
+    padding-left: 0;
 }
 
 main li {
-    margin-bottom: 8px;
+    margin-bottom: 10px;
+    padding-left: 25px; /* Indent using padding */
+    position: relative;
+}
+
+/* Custom bullet points */
+main li::before {
+    content: '✓'; /* Checkmark or other icon */
+    color: var(--primary-color);
+    font-weight: bold;
+    position: absolute;
+    left: 0;
+    top: 0;
+}
+
+/* Tech Stack specific styling */
+#tech ul code {
+    background-color: #e9ecef;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.9em;
 }
 
 /* Footer */
 footer {
     text-align: center;
-    margin-top: 30px;
+    margin-top: 40px;
     padding-top: 20px;
-    border-top: 1px solid #eee;
+    padding-bottom: 20px;
     font-size: 0.9em;
-    color: #6c757d;
+    color: var(--secondary-color);
+    border-top: 1px solid var(--border-light);
 }
 
-/* Links (Example for potential future links) */
+/* Links */
 a {
-    color: #007bff;
+    color: var(--primary-color);
     text-decoration: none;
+    font-weight: 400;
+    transition: color 0.2s ease-in-out;
 }
 
 a:hover {
-    text-decoration: underline;
-}
-
-.app-store-link { /* Example styling for an app store button */
-    display: inline-block;
-    padding: 10px 20px;
-    background-color: #007bff;
-    color: #fff;
-    border-radius: 5px;
-    font-weight: bold;
-    margin-top: 15px;
-}
-
-.app-store-link:hover {
-    background-color: #0056b3;
+    color: #0056b3;
     text-decoration: none;
+}
+
+/* Button Styling (Example) */
+.button, .app-store-link {
+    display: inline-block;
+    padding: 12px 25px;
+    background: var(--primary-color);
+    color: #fff;
+    border-radius: 25px; /* Pill shape */
+    font-weight: 600;
+    margin-top: 15px;
+    text-decoration: none;
+    text-align: center;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+}
+
+.button:hover, .app-store-link:hover {
+    background-color: #0056b3;
+    color: #fff;
+    text-decoration: none;
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+}
+
+/* Responsive adjustments (Basic example) */
+@media (max-width: 768px) {
+    header.hero h1 {
+        font-size: 2.2em;
+    }
+    header.hero p {
+        font-size: 1.1em;
+    }
+    main section {
+        padding: 20px;
+    }
+    main h2 {
+        font-size: 1.6em;
+    }
 }
