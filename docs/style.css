@@ -46,6 +46,13 @@ header.hero h1 {
     font-size: 2.8em; /* Larger title */
     font-weight: 700;
     letter-spacing: -1px;
+    /* Add gradient text effect */
+    background: linear-gradient(45deg, #ffffff, #d0eaff); /* Gradient from white to light blue */
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    /* Fallback for browsers that don't support background-clip */
+    color: #fff;
 }
 
 header.hero p {
@@ -64,6 +71,13 @@ main section {
     margin-bottom: 30px;
     box-shadow: 0 3px 10px var(--shadow-color);
     border: 1px solid var(--border-light);
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out; /* Added transition */
+}
+
+/* Add hover effect to cards */
+main section:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 15px rgba(0, 0, 0, 0.12);
 }
 
 main h2 {
@@ -95,6 +109,7 @@ main li::before {
     position: absolute;
     left: 0;
     top: 0;
+    font-size: 1.2em; /* Make checkmark slightly larger */
 }
 
 /* Tech Stack specific styling */
@@ -142,15 +157,16 @@ a:hover {
     text-align: center;
     border: none;
     cursor: pointer;
-    transition: background-color 0.2s ease-in-out, transform 0.1s ease;
+    /* Refined transition */
+    transition: background-color 0.2s ease-in-out, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .button:hover, .app-store-link:hover {
     background-color: #0056b3;
     color: #fff;
     text-decoration: none;
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+    transform: translateY(-3px) scale(1.03); /* Enhanced hover effect */
+    box-shadow: 0 6px 12px rgba(0,0,0,0.2); /* Stronger shadow on hover */
 }
 
 /* Responsive adjustments (Basic example) */
