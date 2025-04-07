@@ -146,6 +146,12 @@ main section#about:hover h2 {
      color: var(--primary-color);
 }
 
+/* Centering for the CTA in the About section */
+.about-cta {
+    text-align: center;
+    margin-top: 30px; /* Add some space above the CTA */
+}
+
 /* Features Section Grid */
 .features-grid {
     display: grid;
