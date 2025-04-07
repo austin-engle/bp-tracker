@@ -111,15 +111,18 @@ header.hero p {
 
 /* Main content section styling */
 main section {
-    background-color: var(--background-light);
-    padding: 60px 20px; /* Increased section padding */
+    background-color: var(--background-light); /* Ensure all sections start light */
+    padding: 60px 20px;
     margin-bottom: 0;
     border: none;
 }
 
+/* REMOVE the alternating background rule */
+/*
 main section:nth-of-type(even) {
      background-color: var(--background-card);
 }
+*/
 
 main h2 {
     color: var(--primary-color);
