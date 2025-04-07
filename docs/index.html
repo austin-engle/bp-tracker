@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BP Tracker - Blood Pressure Monitoring</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <h1>BP Tracker</h1>
+        <p>A simple application to track your blood pressure readings.</p>
+    </header>
+
+    <main>
+        <section id="about">
+            <h2>About the App</h2>
+            <p>BP Tracker helps you monitor your systolic, diastolic, and pulse readings over time. It features both a web interface and a dedicated iOS application.</p>
+            <p>The backend is powered by a serverless Go application running on AWS Lambda with data stored securely in RDS.</p>
+            <!-- Add link to iOS app if available on App Store later -->
+            <!-- <a href="[App Store Link]" class="app-store-link">Get the iOS App</a> -->
+        </section>
+
+        <section id="features">
+            <h2>Features</h2>
+            <ul>
+                <li>Simple interface for submitting readings.</li>
+                <li>View your history and track trends.</li>
+                <li>Calculates averages over 7 days, 30 days, and all time.</li>
+                <li>Provides blood pressure classification based on latest guidelines.</li>
+                <li>Data accessible via web and iOS app.</li>
+                 <li>Securely stores data in the cloud.</li>
+            </ul>
+        </section>
+
+        <section id="tech">
+             <h2>Technology Stack</h2>
+            <ul>
+                 <li>Backend: Go (Gin), AWS Lambda, API Gateway, RDS PostgreSQL, Secrets Manager</li>
+                 <li>Frontend (iOS): Swift, SwiftUI, Swift Charts</li>
+                 <li>Infrastructure: Terraform, Docker</li>
+                 <li>This Site: HTML, CSS (via GitHub Pages)</li>
+             </ul>
+        </section>
+
+    </main>
+
+    <footer>
+        <p>&copy; [Current Year] BP Tracker Project. <!-- Consider adding your name/GitHub link --></p>
+    </footer>
+</body>
+</html>
